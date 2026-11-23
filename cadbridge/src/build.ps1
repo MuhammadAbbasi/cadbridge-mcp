@@ -10,6 +10,8 @@ param(
     [string]$Out = (Join-Path $PSScriptRoot '..\bin')
 )
 $ErrorActionPreference = 'Stop'
+$Version = (Get-Content (Join-Path $PSScriptRoot '..\VERSION') -Raw).Trim()   # the one place the version is typed
+if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "VERSION must be MAJOR.MINOR.PATCH, got '$Version'" }
 if ($PSVersionTable.PSEdition -ne 'Core') { throw 'Run with PowerShell 7 (pwsh): it carries the Roslyn compiler.' }
 Add-Type -Path (Join-Path $PSHOME 'Microsoft.CodeAnalysis.dll')
 Add-Type -Path (Join-Path $PSHOME 'Microsoft.CodeAnalysis.CSharp.dll')
@@ -58,16 +60,21 @@ function Build($tfm) {
     $tree = [Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree]::ParseText((Get-Content (Join-Path $PSScriptRoot 'CadBridge.cs') -Raw), $parse)
     $opts = [Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions]::new([Microsoft.CodeAnalysis.OutputKind]::DynamicallyLinkedLibrary)
     $opts = $opts.WithPlatform([Microsoft.CodeAnalysis.Platform]::X64).WithOptimizationLevel([Microsoft.CodeAnalysis.OptimizationLevel]::Release)
-    $comp = [Microsoft.CodeAnalysis.CSharp.CSharpCompilation]::Create('CadBridge', [Microsoft.CodeAnalysis.SyntaxTree[]]@($tree), $mrefs, $opts)
+    $stamp = [Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree]::ParseText(
+        "[assembly: System.Reflection.AssemblyVersion(`"$Version.0`")][assembly: System.Reflection.AssemblyFileVersion(`"$Version.0`")]" +
+        "[assembly: System.Reflection.AssemblyInformationalVersion(`"$Version`")]", $parse)
+    $comp = [Microsoft.CodeAnalysis.CSharp.CSharpCompilation]::Create('CadBridge', [Microsoft.CodeAnalysis.SyntaxTree[]]@($tree, $stamp), $mrefs, $opts)
 
     $dir = Join-Path $Out $tfm
     New-Item -ItemType Directory -Force $dir | Out-Null
     $dll = Join-Path (Resolve-Path $dir) 'CadBridge.dll'
     $fs = [IO.File]::Create($dll)
-    try { $res = $comp.Emit($fs) } finally { $fs.Dispose() }
+    # Win32 version resource, so Explorer's file Properties shows the version too
+    $win32 = $comp.CreateDefaultWin32Resources($true, $false, $null, $null)
+    try { $res = $comp.Emit($fs, $null, $null, $win32) } finally { $fs.Dispose(); $win32.Dispose() }
     $res.Diagnostics | Where-Object { $_.Severity -ge 'Warning' } | ForEach-Object { "  [$tfm] $_" }
     if (-not $res.Success) { Remove-Item $dll; throw "build $tfm failed" }
-    "built $dll  (AutoCAD.NET $ver)"
+    "built $dll  v$Version  (AutoCAD.NET $ver)"
 }
 
 foreach ($t in $(if ($Target -eq 'all') { 'net8', 'net48' } else { $Target })) { Build $t }

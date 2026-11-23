@@ -22,6 +22,7 @@ $PyDir = Join-Path $env:LOCALAPPDATA 'CadBridge'
 $Py = Join-Path $PyDir 'venv\Scripts\python.exe'
 $Server = Join-Path $PyDir 'cadbridge_mcp.py'
 $Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$Version = (Get-Content (Join-Path $Here 'VERSION') -Raw).Trim()
 
 function Say($t, $c = 'Gray') { Write-Host $t -ForegroundColor $c }
 function Step($n, $t) { Say ''; Say "  Step $n/5  $t" Cyan; Say ('  ' + ('-' * (10 + $t.Length))) DarkCyan }
@@ -194,7 +195,7 @@ function Wait-Closed($procs) {
 
 # ================================================================ run
 Say ''
-Say '  CadBridge - AI agents edit the drawing open in AutoCAD / CAD&PILLAR, live, as DWG' Cyan
+Say "  CadBridge $Version - AI agents edit the drawing open in AutoCAD / CAD&PILLAR, live, as DWG" Cyan
 Say '  =================================================================================' Cyan
 if ($Uninstall) { Say '  UNINSTALL' Yellow }
 
@@ -265,6 +266,7 @@ if (-not (Test-Path $Py)) { throw 'Python could not be installed (internet acces
 & $uv pip install --quiet --python $Py 'fastmcp>=4.2,<5' pywin32 pillow 2>&1 | Out-Null
 if ($LASTEXITCODE) { throw 'Python libraries could not be installed (internet access?)' }
 Copy-Item (Join-Path $Here 'src\cadbridge_mcp.py') $Server -Force
+Copy-Item (Join-Path $Here 'VERSION') (Join-Path $PyDir 'VERSION') -Force
 Get-ChildItem $PyDir -Filter '*.py' | Where-Object { $_.Name -ne 'cadbridge_mcp.py' -and $Legacy -contains $_.BaseName.Replace('_mcp', '') } | Remove-Item
 Push-Location $PyDir
 try { & $Py -c "import cadbridge_mcp" } finally { Pop-Location }

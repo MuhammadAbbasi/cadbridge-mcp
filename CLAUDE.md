@@ -16,6 +16,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `cadbridge/installer.ps1` must stay Windows PowerShell 5.1-compatible and ASCII-only.
 - Never close or kill a running CAD from a script or agent: ask the user to close it.
 - Commit messages carry no Co-Authored-By trailer.
+- Versioning: `cadbridge/VERSION` (MAJOR.MINOR.PATCH) is the only place the number is typed; `build.ps1` stamps it
+  into both DLLs, the plugin's `ping` and `cad_status` report it (with a `warning` on a plugin/server mismatch), the
+  installer shows it and copies it beside the server. A release = bump `VERSION`, add a `cadbridge/CHANGELOG.md`
+  section, rebuild, commit, tag `cadbridge-vX.Y.Z` (the plain `vX.Y.Z` tags are the original AutoCAD MCP Pro's), push
+  the tag, then refresh `office/` with `Update-Kit.cmd`.
 
 The rest of this file documents the original COM / ezdxf server (README moved to `docs/autocad-mcp-pro.md`).
 

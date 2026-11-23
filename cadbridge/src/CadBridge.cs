@@ -146,7 +146,7 @@ namespace CadBridge
                 case "ping":
                     return new
                     {
-                        pong = true, exe = Me.ProcessName, pid = Me.Id, path = Me.MainModule?.FileName,
+                        pong = true, version = typeof(Bridge).Assembly.GetName().Version?.ToString(3), exe = Me.ProcessName, pid = Me.Id, path = Me.MainModule?.FileName,
                         acadver = AcApp.GetSystemVariable("ACADVER")?.ToString(), product = AcApp.GetSystemVariable("PRODUCT")?.ToString()
                     };
                 case "docs": return AcApp.DocumentManager.Cast<Document>().Select(d => d.Name).ToList();

@@ -62,16 +62,30 @@ def call(req: dict, retries: int = 20):
     return resp["result"]
 
 
-mcp = FastMCP("cadbridge")
+def _read_version() -> str:
+    """VERSION sits beside this file when installed, one folder up in the repository."""
+    here = Path(__file__).resolve().parent
+    for f in (here / "VERSION", here.parent / "VERSION"):
+        if f.is_file():
+            return f.read_text(encoding="utf-8").strip()
+    return "unknown"
+
+
+__version__ = _read_version()
+mcp = FastMCP("cadbridge", version=__version__)
 
 
 @mcp.tool
 def cad_status() -> dict:
     """Running CADs (AutoCAD / CAD&PILLAR) with CadBridge, which one is targeted, and its open drawings."""
     running = pipes()
-    out = {"running": running, "target": _target or (running[0] if len(running) == 1 else None)}
+    out = {"version": __version__, "running": running, "target": _target or (running[0] if len(running) == 1 else None)}
     if out["target"]:
         out["cad"] = call({"op": "ping"})
+        plugin = out["cad"].get("version")
+        if plugin != __version__:
+            out["warning"] = (f"plugin {plugin or '< 1.0.0'} != server {__version__}: run Install.cmd again, "
+                              "then restart the CAD")
         out["docs"] = call({"op": "docs"})
     return out
 

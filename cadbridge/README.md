@@ -17,5 +17,18 @@ To remove it, double-click **`Uninstall.cmd`**. The full documentation is in the
 |---|---|
 | `bin/net8/CadBridge.dll` | plugin for AutoCAD 2025+ and CAD&PILLAR 11 (.NET 8) |
 | `bin/net48/CadBridge.dll` | plugin for AutoCAD 2021-2024 (.NET Framework 4.8) |
+| `VERSION`, `CHANGELOG.md` | the version number (the only copy) and what changed in each version |
 | `src/` | plugin source (`CadBridge.cs`), its build script, the MCP server (`cadbridge_mcp.py`) |
 | `examples/` | a 2-bedroom house example (sketch, then blocks and landscape) |
+
+## Version
+
+The installed version is shown by the installer, by `cad_status` (`version`; a `warning` appears when the CAD
+still runs an older plugin) and in Explorer: `CadBridge.dll` > Properties > Details. Changes are in
+[CHANGELOG.md](CHANGELOG.md).
+
+Releasing a new version (maintainer):
+
+1. Edit `VERSION` (the only place the number is typed) and add a section to `CHANGELOG.md`.
+2. Rebuild both plugins: `pwsh src/build.ps1`.
+3. Commit, then tag and push: `git tag cadbridge-vX.Y.Z` and `git push origin main cadbridge-vX.Y.Z`.
