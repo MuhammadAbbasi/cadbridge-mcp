@@ -115,7 +115,11 @@ def string_sizing(
 SECTIONS_MM2 = (1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300, 400, 500, 630)
 _RHO20 = {"cu": 0.017241, "al": 0.028264}  # ohm mm2 / m
 _ALPHA = {"cu": 0.00393, "al": 0.00403}
-_SYSTEMS = {"dc": (2.0, 2), "ac1": (2.0, 2), "ac3": (math.sqrt(3), 3)}  # (k drop, loaded conductors)
+_SYSTEMS = {
+    "dc": (2.0, 2),
+    "ac1": (2.0, 2),
+    "ac3": (math.sqrt(3), 3),
+}  # (k drop, loaded conductors)
 
 
 def _drop(run: dict, s: float, rho: float) -> tuple[float, float]:
@@ -132,7 +136,9 @@ def _drop(run: dict, s: float, rho: float) -> tuple[float, float]:
     return dv / run["voltage_v"] * 100.0, n_cond * i * i * r * length
 
 
-def cable_sizing(runs: list[dict], *, max_drop_pct: float = 1.5, conductor_temp_c: float = 90.0) -> dict:
+def cable_sizing(
+    runs: list[dict], *, max_drop_pct: float = 1.5, conductor_temp_c: float = 90.0
+) -> dict:
     """Voltage drop, loss and the smallest standard section meeting ``max_drop_pct``.
 
     Each run: id, system dc|ac1|ac3, length_m, voltage_v (line-line for ac3),
@@ -159,7 +165,13 @@ def cable_sizing(runs: list[dict], *, max_drop_pct: float = 1.5, conductor_temp_
             i = _num(raw, "current_a", where)
         else:
             p = _num(raw, "power_kw", where) * 1000.0
-            i = p / v if system == "dc" else p / (v * cos_phi) if system == "ac1" else p / (math.sqrt(3) * v * cos_phi)
+            i = (
+                p / v
+                if system == "dc"
+                else p / (v * cos_phi)
+                if system == "ac1"
+                else p / (math.sqrt(3) * v * cos_phi)
+            )
         run = {
             "system": system,
             "length_m": _num(raw, "length_m", where),
@@ -183,7 +195,9 @@ def cable_sizing(runs: list[dict], *, max_drop_pct: float = 1.5, conductor_temp_
             "issues": [],
         }
         if minimum is None:
-            row["issues"].append(f"no section up to {SECTIONS_MM2[-1]} mm2 meets {limit} % - add parallel runs")
+            row["issues"].append(
+                f"no section up to {SECTIONS_MM2[-1]} mm2 meets {limit} % - add parallel runs"
+            )
         section = raw.get("section_mm2")
         check = float(section) if section is not None else minimum
         if check:
@@ -200,7 +214,11 @@ def cable_sizing(runs: list[dict], *, max_drop_pct: float = 1.5, conductor_temp_
         rows.append(row)
     return {
         "rows": rows,
-        "summary": {"runs": len(rows), "with_issues": problems, "total_loss_kw": round(total_loss / 1000, 3)},
+        "summary": {
+            "runs": len(rows),
+            "with_issues": problems,
+            "total_loss_kw": round(total_loss / 1000, 3),
+        },
         "method": f"rho at {conductor_temp_c} °C; ampacity only checked where ampacity_a is given "
         "(installation-method tables per IEC 60364-5-52 / CEI-UNEL 35024 are not built in)",
     }
@@ -208,13 +226,27 @@ def cable_sizing(runs: list[dict], *, max_drop_pct: float = 1.5, conductor_temp_
 
 # ── single-line diagram ───────────────────────────────────────────────────────
 
-NODE_TYPES = ("pod", "switchgear", "breaker", "transformer", "cabin", "inverter", "combiner", "strings")
+NODE_TYPES = (
+    "pod",
+    "switchgear",
+    "breaker",
+    "transformer",
+    "cabin",
+    "inverter",
+    "combiner",
+    "strings",
+)
 _MAX_NODES = 5000
 
 
 def _kwp(node: dict) -> float:
     if node.get("type") == "strings":
-        return float(node.get("count", 1)) * float(node.get("modules", 0)) * float(node.get("wp", 0)) / 1000
+        return (
+            float(node.get("count", 1))
+            * float(node.get("modules", 0))
+            * float(node.get("wp", 0))
+            / 1000
+        )
     return sum(_kwp(c) for c in node.get("children", ()))
 
 
@@ -246,8 +278,14 @@ def sld_geometry(root: dict, *, x0: float = 0.0, y0: float = 0.0, scale: float =
         return max(w, sum(width(c) for c in kids) + gap_x * (len(kids) - 1)) if kids else w
 
     specs: list[dict] = []
-    line = lambda a, b, c, d: specs.append({"type": "line", "x1": a, "y1": b, "x2": c, "y2": d, "layer": "SLD-WIRE"})  # noqa: E731
-    text = lambda s, x, y, k=1.0: specs.append({"type": "text", "text": s, "x": x, "y": y, "height": th * k, "layer": "SLD-TEXT"})  # noqa: E731
+
+    def line(a, b, c, d):
+        specs.append({"type": "line", "x1": a, "y1": b, "x2": c, "y2": d, "layer": "SLD-WIRE"})
+
+    def text(s, x, y, k=1.0):
+        specs.append(
+            {"type": "text", "text": s, "x": x, "y": y, "height": th * k, "layer": "SLD-TEXT"}
+        )
 
     def symbol(node, cx, top):
         kind = node.get("type", "breaker")
@@ -255,7 +293,15 @@ def sld_geometry(root: dict, *, x0: float = 0.0, y0: float = 0.0, scale: float =
         if kind == "transformer":
             r = h * 0.32
             for dy in (r * 0.7, -r * 0.7):
-                specs.append({"type": "circle", "cx": cx, "cy": top - h / 2 + dy, "radius": r, "layer": "SLD-SYMBOL"})
+                specs.append(
+                    {
+                        "type": "circle",
+                        "cx": cx,
+                        "cy": top - h / 2 + dy,
+                        "radius": r,
+                        "layer": "SLD-SYMBOL",
+                    }
+                )
         else:
             box = [[left, bottom], [left + w, bottom], [left + w, top], [left, top]]
             specs.append({"type": "polyline", "points": box, "closed": True, "layer": "SLD-SYMBOL"})
@@ -272,7 +318,9 @@ def sld_geometry(root: dict, *, x0: float = 0.0, y0: float = 0.0, scale: float =
         if kind == "inverter" and node.get("kva") and kwp:
             info.append(f"DC/AC {kwp / float(node['kva']):.2f}")
         if kind == "strings":
-            info.append(f"{node.get('count', 1)} x ({node.get('modules', '?')} x {node.get('wp', '?')} Wp)")
+            info.append(
+                f"{node.get('count', 1)} x ({node.get('modules', '?')} x {node.get('wp', '?')} Wp)"
+            )
         info = " | ".join(s for s in info if s)
         if info:
             text(info, label_x, top - th * 2.8, 0.75)
@@ -331,14 +379,22 @@ class _Tin:
         self.cell = math.sqrt(area / len(tris)) * 2 or 1.0
         self.grid: dict[tuple[int, int], list[int]] = {}
         for k, t in enumerate(tris):
-            i0, i1 = (int(math.floor(min(p[0] for p in t) / self.cell)), int(math.floor(max(p[0] for p in t) / self.cell)))
-            j0, j1 = (int(math.floor(min(p[1] for p in t) / self.cell)), int(math.floor(max(p[1] for p in t) / self.cell)))
+            i0, i1 = (
+                int(math.floor(min(p[0] for p in t) / self.cell)),
+                int(math.floor(max(p[0] for p in t) / self.cell)),
+            )
+            j0, j1 = (
+                int(math.floor(min(p[1] for p in t) / self.cell)),
+                int(math.floor(max(p[1] for p in t) / self.cell)),
+            )
             for i in range(i0, i1 + 1):
                 for j in range(j0, j1 + 1):
                     self.grid.setdefault((i, j), []).append(k)
 
     def z(self, x: float, y: float) -> float | None:
-        for k in self.grid.get((int(math.floor(x / self.cell)), int(math.floor(y / self.cell))), ()):
+        for k in self.grid.get(
+            (int(math.floor(x / self.cell)), int(math.floor(y / self.cell))), ()
+        ):
             (x1, y1, z1), (x2, y2, z2), (x3, y3, z3) = self.tris[k]
             d = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3)
             if d == 0:
@@ -417,7 +473,13 @@ def terrain_check(
                 s = -length / 2 + length * k / (piles - 1)
                 sample.append((cx + s * ux + off * vx, cy + s * uy + off * vy))
         ground = [(x, y, tin.z(x, y)) for x, y in sample]
-        row = {"id": tab["id"], "x": round(cx, 3), "y": round(cy, 3), "length_m": round(length, 2), "issues": []}
+        row = {
+            "id": tab["id"],
+            "x": round(cx, 3),
+            "y": round(cy, 3),
+            "length_m": round(length, 2),
+            "issues": [],
+        }
         on = [g for g in ground if g[2] is not None]
         if len(on) < len(ground):
             row["issues"].append(f"{len(ground) - len(on)} piles outside the DTM")
@@ -442,7 +504,9 @@ def terrain_check(
             if max_slope_cross_pct is not None and slope_cross > max_slope_cross_pct:
                 row["issues"].append(f"cross slope {slope_cross:.1f} % > {max_slope_cross_pct} %")
             if max_deviation_m is not None and row["deviation_max_m"] > max_deviation_m:
-                row["issues"].append(f"pile deviation {row['deviation_max_m']} m > {max_deviation_m} m")
+                row["issues"].append(
+                    f"pile deviation {row['deviation_max_m']} m > {max_deviation_m} m"
+                )
         flagged += bool(row["issues"])
         rows.append(row)
     slopes = [r["slope_long_pct"] for r in rows if "slope_long_pct" in r]
@@ -483,7 +547,9 @@ def _extract(doc, dtm_layer: str | None, table_layer: str, table_block: str | No
             pts = [(p[0], p[1]) for p in e.get_points("xy")]
             edges = [(pts[i], pts[(i + 1) % len(pts)]) for i in range(len(pts))]
             (x1, y1), (x2, y2) = max(edges, key=lambda ed: math.dist(*ed))
-            tables.append({"id": e.dxf.handle, "points": pts, "axis_angle": math.atan2(y2 - y1, x2 - x1)})
+            tables.append(
+                {"id": e.dxf.handle, "points": pts, "axis_angle": math.atan2(y2 - y1, x2 - x1)}
+            )
         elif kind == "INSERT" and (table_block is None or up(e.dxf.name) == up(table_block)):
             pts = []
             for v in e.virtual_entities():
@@ -492,7 +558,13 @@ def _extract(doc, dtm_layer: str | None, table_layer: str, table_block: str | No
                 elif v.dxftype() == "LWPOLYLINE":
                     pts += [(p[0], p[1]) for p in v.get_points("xy")]
             if len(pts) >= 3:
-                tables.append({"id": e.dxf.handle, "points": pts, "axis_angle": math.radians(e.dxf.get("rotation", 0.0))})
+                tables.append(
+                    {
+                        "id": e.dxf.handle,
+                        "points": pts,
+                        "axis_angle": math.radians(e.dxf.get("rotation", 0.0)),
+                    }
+                )
     return tris, tables
 
 
@@ -531,10 +603,23 @@ async def run_terrain_check(
     doc = await _load_doc(backend, drawing_path)
     tris, tables = await asyncio.to_thread(_extract, doc, dtm_layer, table_layer, table_block)
     if not tables:
-        raise ValueError(f"no tables found on layer {table_layer!r} (closed polylines or block references)")
+        raise ValueError(
+            f"no tables found on layer {table_layer!r} (closed polylines or block references)"
+        )
     result = await asyncio.to_thread(terrain_check, tris, tables, **limits)
     if output:
-        cols = ["id", "x", "y", "length_m", "z_min", "z_max", "slope_long_pct", "slope_cross_pct", "deviation_max_m", "issues"]
+        cols = [
+            "id",
+            "x",
+            "y",
+            "length_m",
+            "z_min",
+            "z_max",
+            "slope_long_pct",
+            "slope_cross_pct",
+            "deviation_max_m",
+            "issues",
+        ]
         with Path(output).open("w", newline="", encoding="utf-8") as fh:
             writer = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore", delimiter=";")
             writer.writeheader()
@@ -547,10 +632,15 @@ async def run_terrain_check(
         except Exception:  # noqa: BLE001 - the layer already exists
             pass
         specs = [
-            {"type": "circle", "cx": r["x"], "cy": r["y"], "radius": max(r["length_m"] / 2, 1.0), "layer": "PV-TERRAIN-FLAG"}
+            {
+                "type": "circle",
+                "cx": r["x"],
+                "cy": r["y"],
+                "radius": max(r["length_m"] / 2, 1.0),
+                "layer": "PV-TERRAIN-FLAG",
+            }
             for r in result["rows"]
             if r["issues"]
         ]
         result["marked"] = (await backend.entity_batch_create(specs))["created"] if specs else 0
     return result
-

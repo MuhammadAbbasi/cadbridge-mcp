@@ -415,7 +415,12 @@ def derived() -> dict[str, object]:
 #: itself a failure: the sentence it was written for has moved, and a silent
 #: no-op gate is worse than no gate.
 CHECKS: list[tuple[str, str, str, str]] = [
-    ("docs/autocad-mcp-pro.md", "release snapshot tools", r"release snapshot:\*\*\s*(\d+) tools", "tools"),
+    (
+        "docs/autocad-mcp-pro.md",
+        "release snapshot tools",
+        r"release snapshot:\*\*\s*(\d+) tools",
+        "tools",
+    ),
     (
         "docs/autocad-mcp-pro.md",
         "release snapshot resources",
@@ -428,7 +433,12 @@ CHECKS: list[tuple[str, str, str, str]] = [
         r"release snapshot:.*?(\d+) prompt templates",
         "prompts",
     ),
-    ("docs/autocad-mcp-pro.md", "A/B suite size", r"(\d+) deterministic headless checks", "ab_total"),
+    (
+        "docs/autocad-mcp-pro.md",
+        "A/B suite size",
+        r"(\d+) deterministic headless checks",
+        "ab_total",
+    ),
     (
         "docs/autocad-mcp-pro.md",
         "A/B baseline pass",

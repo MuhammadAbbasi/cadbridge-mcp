@@ -14682,7 +14682,10 @@ async def cable_takeoff(
 # (CADPILLAR / Civil 3D); these tools consume its DTM as 3DFACE / polyface mesh.
 
 
-@cad_tool(summary="PV string sizing: modules per string and strings per MPPT from module and inverter data.", cost="read")
+@cad_tool(
+    summary="PV string sizing: modules per string and strings per MPPT from module and inverter data.",
+    cost="read",
+)
 @mcp.tool(
     annotations={"title": "Solar: String Sizing", "readOnlyHint": True, "destructiveHint": False},
     tags={"solar", "analysis"},
@@ -14690,14 +14693,22 @@ async def cable_takeoff(
 async def solar_string_sizing(
     module: Annotated[
         dict,
-        Field(description="voc, vmp, isc [STC], beta_voc %/°C (negative), optional beta_vmp, alpha_isc, bifacial_gain."),
+        Field(
+            description="voc, vmp, isc [STC], beta_voc %/°C (negative), optional beta_vmp, alpha_isc, bifacial_gain."
+        ),
     ],
     inverter: Annotated[
         dict,
-        Field(description="vdc_max, mppt_min, mppt_max [V], optional isc_max_mppt [A], system_v_max (1500)."),
+        Field(
+            description="vdc_max, mppt_min, mppt_max [V], optional isc_max_mppt [A], system_v_max (1500)."
+        ),
     ],
-    t_cell_min: Annotated[float, Field(default=-10.0, description="Coldest cell temperature °C (site record low).")] = -10.0,
-    t_cell_max: Annotated[float, Field(default=70.0, description="Hottest cell temperature °C.")] = 70.0,
+    t_cell_min: Annotated[
+        float, Field(default=-10.0, description="Coldest cell temperature °C (site record low).")
+    ] = -10.0,
+    t_cell_max: Annotated[
+        float, Field(default=70.0, description="Hottest cell temperature °C.")
+    ] = 70.0,
     ctx: Context = None,
 ) -> dict:
     """Min / max modules per string (Voc at Tmin vs inverter and system voltage, Vmp at
@@ -14711,7 +14722,10 @@ async def solar_string_sizing(
         raise ToolError(str(exc)) from exc
 
 
-@cad_tool(summary="PV cable sizing: voltage drop, loss and minimum section for DC strings and AC feeders.", cost="read")
+@cad_tool(
+    summary="PV cable sizing: voltage drop, loss and minimum section for DC strings and AC feeders.",
+    cost="read",
+)
 @mcp.tool(
     annotations={"title": "Solar: Cable Sizing", "readOnlyHint": True, "destructiveHint": False},
     tags={"solar", "analysis"},
@@ -14724,8 +14738,12 @@ async def solar_cable_sizing(
             "cos_phi, section_mm2 (checked if given), material cu|al, parallel, x_ohm_km, ampacity_a, max_drop_pct."
         ),
     ],
-    max_drop_pct: Annotated[float, Field(default=1.5, gt=0, le=10, description="Default drop limit per run, %.")] = 1.5,
-    conductor_temp_c: Annotated[float, Field(default=90.0, description="Conductor temperature for resistivity, °C.")] = 90.0,
+    max_drop_pct: Annotated[
+        float, Field(default=1.5, gt=0, le=10, description="Default drop limit per run, %.")
+    ] = 1.5,
+    conductor_temp_c: Annotated[
+        float, Field(default=90.0, description="Conductor temperature for resistivity, °C.")
+    ] = 90.0,
     ctx: Context = None,
 ) -> dict:
     """Voltage drop (IEC 60364-5-52 formula), Joule loss and the smallest standard
@@ -14739,9 +14757,16 @@ async def solar_cable_sizing(
         raise ToolError(str(exc)) from exc
 
 
-@cad_tool(summary="Draw a PV single-line diagram (POD > transformers > inverters > strings) with kWp roll-up.", cost="mutate")
+@cad_tool(
+    summary="Draw a PV single-line diagram (POD > transformers > inverters > strings) with kWp roll-up.",
+    cost="mutate",
+)
 @mcp.tool(
-    annotations={"title": "Solar: Single-Line Diagram", "readOnlyHint": False, "destructiveHint": False},
+    annotations={
+        "title": "Solar: Single-Line Diagram",
+        "readOnlyHint": False,
+        "destructiveHint": False,
+    },
     tags={"solar", "create"},
 )
 async def solar_sld_draw(
@@ -14769,28 +14794,65 @@ async def solar_sld_draw(
         raise ToolError(str(exc)) from exc
 
 
-@cad_tool(summary="PV terrain check: per-table slope and pile deviation from the DTM (trackers or fixed tilt).", cost="safe")
+@cad_tool(
+    summary="PV terrain check: per-table slope and pile deviation from the DTM (trackers or fixed tilt).",
+    cost="safe",
+)
 @mcp.tool(
     annotations={"title": "Solar: Terrain Check", "readOnlyHint": False, "destructiveHint": False},
     tags={"solar", "analysis"},
 )
 async def solar_terrain_check(
-    table_layer: Annotated[str, Field(description="Layer of the table / tracker footprints (closed polylines or blocks).")],
+    table_layer: Annotated[
+        str,
+        Field(description="Layer of the table / tracker footprints (closed polylines or blocks)."),
+    ],
     dtm_layer: Annotated[
         str | None,
-        Field(default=None, description="Layer of the DTM triangles (3DFACE / polyface mesh). Omit for every layer."),
+        Field(
+            default=None,
+            description="Layer of the DTM triangles (3DFACE / polyface mesh). Omit for every layer.",
+        ),
     ] = None,
     drawing_path: Annotated[
-        str | None, Field(default=None, description="A .dxf (or .dwg live) to read. Omit for the current drawing.")
+        str | None,
+        Field(
+            default=None, description="A .dxf (or .dwg live) to read. Omit for the current drawing."
+        ),
     ] = None,
-    table_block: Annotated[str | None, Field(default=None, description="Only INSERTs of this block count as tables.")] = None,
-    structure: Annotated[str, Field(default="tracker", description="tracker (one pile line) | fixed (front/rear posts).")] = "tracker",
-    piles: Annotated[int, Field(default=7, ge=2, le=50, description="Piles per line along the table.")] = 7,
-    max_slope_long_pct: Annotated[float | None, Field(default=None, description="Flag above this long-axis slope %.")] = None,
-    max_slope_cross_pct: Annotated[float | None, Field(default=None, description="Flag above this cross slope %.")] = None,
-    max_deviation_m: Annotated[float | None, Field(default=None, description="Flag a pile further than this from the structure line/plane, m.")] = None,
-    output: Annotated[str | None, Field(default=None, description="CSV file to write the rows to.")] = None,
-    mark: Annotated[bool, Field(default=False, description="Circle flagged tables on PV-TERRAIN-FLAG (current drawing only).")] = False,
+    table_block: Annotated[
+        str | None, Field(default=None, description="Only INSERTs of this block count as tables.")
+    ] = None,
+    structure: Annotated[
+        str,
+        Field(default="tracker", description="tracker (one pile line) | fixed (front/rear posts)."),
+    ] = "tracker",
+    piles: Annotated[
+        int, Field(default=7, ge=2, le=50, description="Piles per line along the table.")
+    ] = 7,
+    max_slope_long_pct: Annotated[
+        float | None, Field(default=None, description="Flag above this long-axis slope %.")
+    ] = None,
+    max_slope_cross_pct: Annotated[
+        float | None, Field(default=None, description="Flag above this cross slope %.")
+    ] = None,
+    max_deviation_m: Annotated[
+        float | None,
+        Field(
+            default=None,
+            description="Flag a pile further than this from the structure line/plane, m.",
+        ),
+    ] = None,
+    output: Annotated[
+        str | None, Field(default=None, description="CSV file to write the rows to.")
+    ] = None,
+    mark: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="Circle flagged tables on PV-TERRAIN-FLAG (current drawing only).",
+        ),
+    ] = False,
     ctx: Context = None,
 ) -> dict:
     """For each table: ground z range, long / cross slope of the best-fit ground plane

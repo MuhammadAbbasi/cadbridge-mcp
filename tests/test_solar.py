@@ -26,7 +26,18 @@ def test_string_sizing_refuses_missing_field():
 
 def test_dc_voltage_drop_by_hand():
     # rho90 = 0.017241 * (1 + 0.00393 * 70) = 0.021984; dV = 2*100*10*rho/6 = 7.328 V
-    r = cable_sizing([{"id": "S1", "system": "dc", "length_m": 100, "current_a": 10, "voltage_v": 1000, "section_mm2": 6}])
+    r = cable_sizing(
+        [
+            {
+                "id": "S1",
+                "system": "dc",
+                "length_m": 100,
+                "current_a": 10,
+                "voltage_v": 1000,
+                "section_mm2": 6,
+            }
+        ]
+    )
     row = r["rows"][0]
     assert row["drop_pct"] == pytest.approx(0.733, abs=0.001)
     assert row["min_section_mm2"] == 4  # 4 mm2 -> 1.10 % <= 1.5 %
@@ -35,7 +46,17 @@ def test_dc_voltage_drop_by_hand():
 
 def test_ac3_flags_drop_and_ampacity():
     r = cable_sizing(
-        [{"system": "ac3", "length_m": 300, "power_kw": 300, "voltage_v": 800, "cos_phi": 0.95, "section_mm2": 95, "ampacity_a": 200}],
+        [
+            {
+                "system": "ac3",
+                "length_m": 300,
+                "power_kw": 300,
+                "voltage_v": 800,
+                "cos_phi": 0.95,
+                "section_mm2": 95,
+                "ampacity_a": 200,
+            }
+        ],
         max_drop_pct=1.0,
     )
     issues = " ".join(r["rows"][0]["issues"])
@@ -45,14 +66,32 @@ def test_ac3_flags_drop_and_ampacity():
 
 def test_sld_rolls_up_kwp_and_draws_every_node():
     spec = {
-        "name": "POD", "type": "pod",
-        "children": [{
-            "name": "TR1", "type": "transformer",
-            "children": [
-                {"name": "INV1", "type": "inverter", "kva": 300, "children": [{"name": "S", "type": "strings", "count": 20, "modules": 26, "wp": 580}]},
-                {"name": "INV2", "type": "inverter", "kva": 300, "children": [{"name": "S", "type": "strings", "count": 20, "modules": 26, "wp": 580}]},
-            ],
-        }],
+        "name": "POD",
+        "type": "pod",
+        "children": [
+            {
+                "name": "TR1",
+                "type": "transformer",
+                "children": [
+                    {
+                        "name": "INV1",
+                        "type": "inverter",
+                        "kva": 300,
+                        "children": [
+                            {"name": "S", "type": "strings", "count": 20, "modules": 26, "wp": 580}
+                        ],
+                    },
+                    {
+                        "name": "INV2",
+                        "type": "inverter",
+                        "kva": 300,
+                        "children": [
+                            {"name": "S", "type": "strings", "count": 20, "modules": 26, "wp": 580}
+                        ],
+                    },
+                ],
+            }
+        ],
     }
     specs = sld_geometry(spec)
     texts = " ".join(s["text"] for s in specs if s["type"] == "text")
@@ -71,8 +110,12 @@ def _tilted_plane_doc():
     p = [(x, y, z(x, y)) for x, y in corners]
     msp.add_3dface([p[0], p[1], p[2], p[2]], dxfattribs={"layer": "DTM"})
     msp.add_3dface([p[0], p[2], p[3], p[3]], dxfattribs={"layer": "DTM"})
-    msp.add_lwpolyline([(0, 0), (20, 0), (20, 2), (0, 2)], close=True, dxfattribs={"layer": "PV-TABLE"})
-    msp.add_lwpolyline([(60, 0), (80, 0), (80, 2), (60, 2)], close=True, dxfattribs={"layer": "PV-TABLE"})  # off the DTM
+    msp.add_lwpolyline(
+        [(0, 0), (20, 0), (20, 2), (0, 2)], close=True, dxfattribs={"layer": "PV-TABLE"}
+    )
+    msp.add_lwpolyline(
+        [(60, 0), (80, 0), (80, 2), (60, 2)], close=True, dxfattribs={"layer": "PV-TABLE"}
+    )  # off the DTM
     return doc
 
 

@@ -175,7 +175,9 @@ def test_any_wording_of_an_unbacked_live_run_is_named(tmp_path, sentence):
     root = _tree(tmp_path, "", readme="# Title\n\nSome prose.\n\n" + sentence + "\n")
     _harness_file(root, "pid", "pass", "1.7.0")
     problems, table = cdn.check_live_claims(root, release="1.8.0")
-    assert len(problems) == 1 and problems[0].startswith("UNBACKED  docs/autocad-mcp-pro.md:5:"), problems
+    assert len(problems) == 1 and problems[0].startswith("UNBACKED  docs/autocad-mcp-pro.md:5:"), (
+        problems
+    )
     assert all(row["evidence"] is None for row in table)
 
 
