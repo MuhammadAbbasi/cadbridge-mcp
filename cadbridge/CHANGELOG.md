@@ -3,6 +3,42 @@
 Versions follow `MAJOR.MINOR.PATCH`: MAJOR when an existing tool or op changes in a way that breaks callers,
 MINOR for new tools, ops or supported CADs, PATCH for fixes. The number lives only in `VERSION`.
 
+## 1.3.0 - 2026-11-23
+
+From the 23 Nov test session (a 3D house with PV on CAD&PILLAR 11): about 40 polling calls and 4 manual ESC presses.
+
+- `cad_command` waits: the command line is polled until the CAD is idle again and the call returns `status`
+  (`done` / `timeout` / `cancelled` / `busy`), `ms`, the active command and last prompt, and the handles created. A
+  command still waiting for input at `timeout_s` is cancelled (`on_timeout="leave"` keeps it). A CAD already inside a
+  command answers `busy` instead of receiving keystrokes. Jobs run one at a time. `wait=False` keeps the old queueing.
+- New `cad_lisp`: evaluates AutoLISP and returns its value as JSON (lists, dotted pairs, enames and selection sets as
+  handles, nil, T), or its error message. The LISP encodes the value itself and the plugin reads it back from a temp
+  file: CAD&PILLAR does not register a plugin's .NET commands or LISP functions (measured: even `CADBRIDGE` is
+  "Comando sconosciuto").
+- Fix: LISP text sent to the command line is broken into lines of about 200 characters (at spaces outside strings and
+  comments). CAD&PILLAR's LISP reader crashes on one long line: a 1,021-character line gave an access violation, then
+  took the whole CAD down; the same text in short lines runs every time. Applies to `cad_lisp` and to `cad_command`
+  text that starts with `(`.
+- A job waits (up to 10 s) while a LISP or script runs without a command name, e.g. CAD&PILLAR's own `CDLoadMenu` in
+  every new drawing; an open command still answers `busy` at once.
+- New `cad_cancel`: ESC ESC, then waits until no command is active.
+- `cad_ops` 3D ops, through the database (WCS whatever the UCS, no command prompt): `box`, `cylinder` (any axis,
+  cone with `r2`), `sphere`, `extrude` (an outline or a closed curve), `union` / `subtract` / `intersect`, `face3d`,
+  `poly3d`; each returns `{handle, min, max}`. `move` / `copy` take `dz`.
+- `insert`: `z` and `xscale` / `yscale` / `zscale` (negative = mirrored). `get` / `list` report an insert's `scale`
+  and a solid's `volume`.
+- `cad_info` extents are recomputed (`UpdateExt`): erased objects no longer count.
+- A missing linetype is loaded from the CAD's own files: CAD&PILLAR has `cadp.lin` / `cadpiso.lin`, not
+  `acadiso.lin` (the `eFileSystemErr` of the test), with Italian names: `DASHED` is found as `TRATTEGGIATA`, and
+  `BORDER`, `CENTER`, `DASHDOT`, `DIVIDE`, `DOT`, `HIDDEN`, `PHANTOM` (and their `2` / `X2` sizes) likewise.
+- `setvar`: CAD&PILLAR refuses `SetSystemVariable` from a plugin for every variable (`eInvalidInput`; measured with and
+  without the document lock and the transaction), so the op now fails with the `cad_lisp` call that works:
+  `(setvar "ORTHOMODE" 0)`. The review's guess (value not coerced to the variable's type) was wrong.
+- `src/live_check.py`: the live acceptance check (24 checks, run in a new drawing). 1.3.0 passed all 24 on
+  CAD&PILLAR 11.
+- The usage log records the first LISP function of `cad_lisp` / `cad_command` and a `command_end` event for every
+  job that did not end `done`.
+
 ## 1.2.1 - 2026-11-23
 
 - Installer: Claude Desktop from the Microsoft Store now gets the server. Its current builds read

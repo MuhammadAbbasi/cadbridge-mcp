@@ -17,7 +17,7 @@ AI app --MCP stdio--> %LOCALAPPDATA%\CadBridge\cadbridge_mcp.py --named pipe--> 
 - `bin/net8/CadBridge.dll`: plugin for AutoCAD 2025-2026 and CAD&PILLAR 11. `bin/net48/CadBridge.dll`: AutoCAD 2021-2024.
   The CAD loads it at every start (per-user registry autoload). It serves JSON on `\\.\pipe\cadbridge-<exe>-<pid>`.
 - `src/cadbridge_mcp.py`: the MCP server (fastmcp, Python 3.12). Tools: `cad_status`, `cad_use`, `cad_info`,
-  `cad_list`, `cad_ops`, `cad_command`, `cad_new`, `cad_open`, `cad_save`, `cad_screenshot`.
+  `cad_list`, `cad_ops`, `cad_command`, `cad_lisp`, `cad_cancel`, `cad_new`, `cad_open`, `cad_save`, `cad_screenshot`.
 - `installer.ps1` (started by `Install.cmd`): finds the CADs, installs the plugin and its autoload, downloads uv,
   Python and the libraries when missing, and writes the MCP entry `cadbridge` into each AI app's config (with a backup).
 - `VERSION` is the installed version; `CHANGELOG.md` says what changed. Everything is per Windows user: no admin rights.
@@ -96,6 +96,14 @@ CLI on the PC where the CAD runs.
 
 - Start with `cad_status`, then `cad_info` (units, extents, layers, blocks) before drawing anything.
 - `cad_ops` runs a batch of ops in one undoable transaction: all-or-nothing. The user can `UNDO` it in the CAD.
+  Prefer it to commands: its coordinates are WCS whatever the user's UCS, and it has 3D ops (`box`, `cylinder`,
+  `extrude`, `union` / `subtract`, `face3d`, `poly3d`...).
+- `cad_command` waits for the command to finish and returns `status`. `busy` means the CAD is already inside a
+  command (often the user's): ask the user, or `cad_cancel`. A command still waiting for input at `timeout_s` is
+  cancelled, so never send keystrokes (`^C`, ESC) as command text.
+- `cad_lisp` returns values: read sysvars, tables, files with it instead of storing results in USERI / USERS
+  variables and polling them. Set variables with it too (`(setvar "ORTHOMODE" 0)`): CAD&PILLAR refuses the `setvar`
+  op. AutoLISP calls take at most 255 arguments.
 - Do not save over the user's drawing unless asked: `cad_save` without a path saves in place.
 - Drawings are often in millimetres: check `cad_info` units before giving sizes.
 

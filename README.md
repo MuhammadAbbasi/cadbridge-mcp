@@ -67,7 +67,9 @@ questions, what each error means, how to verify the connection, and never to clo
 | `cad_info` | the active drawing: units, extents, entity count, layers, blocks |
 | `cad_list` | model-space entities with geometry (filter by layer / DXF type) |
 | `cad_ops` | a batch of edits in **one transaction: all or nothing** (see below) |
-| `cad_command` | any command line of the CAD, including the OEM's own commands (`_.ZOOM _E`, ...) |
+| `cad_command` | any command line of the CAD, including the OEM's own commands (`_.ZOOM _E`, ...); **waits** until the CAD is idle and returns `status` (`done` / `timeout` / `cancelled` / `busy`), the prompt and the created handles; a command left waiting for input is cancelled at the timeout |
+| `cad_lisp` | evaluates AutoLISP and **returns its value** as JSON (lists, points, handles, selection sets), or the error; also the way to set variables in CAD&PILLAR |
+| `cad_cancel` | ESC ESC: cancels whatever command is active and waits until the CAD is idle |
 | `cad_new`, `cad_open`, `cad_save` | new drawing, open a DWG (or activate it if already open), save as DWG |
 | `cad_screenshot` | picture of the CAD window, to show the user the result |
 
@@ -79,8 +81,9 @@ when missing) and `color` (ACI)):
 | geometry | `line`, `pline` (points with optional bulge, `closed`), `circle`, `arc` |
 | annotation | `text` (MTEXT; `\P` is a new line), `dim` (aligned; `scale` = DIMSCALE) |
 | fills | `hatch` (any pattern; `scale`, `angle`; `keep_boundary`) |
-| blocks | `block_define` (a block from create ops), `block_import` (a DWG file becomes a block; returns its size), `block_info`, `insert` |
-| editing | `move`, `copy`, `rotate`, `delete`, `set` (layer / color / text), `layer` |
+| 3D (always WCS, whatever the UCS) | `box`, `cylinder` (any axis; `r2` = cone), `sphere`, `extrude` (an outline or a closed curve), `union` / `subtract` / `intersect`, `face3d`, `poly3d`; each returns `{handle, min, max}` |
+| blocks | `block_define` (a block from create ops), `block_import` (a DWG file becomes a block; returns its size), `block_info`, `insert` (`z`, `xscale` / `yscale` / `zscale`: negative mirrors) |
+| editing | `move`, `copy` (`dz` too), `rotate`, `delete`, `set` (layer / color / text), `layer` (a missing linetype is loaded from the CAD's own `.lin` files) |
 | reading / settings | `info`, `list`, `get`, `getvar`, `setvar` |
 
 ## Working principles
@@ -105,6 +108,12 @@ These are the rules the current design follows, each learnt the hard way:
    MCP connect timeout. Locally it starts in about 3 s.
 9. **Sketch, accept, enhance.** Agents should draw a sketch, show it with `cad_screenshot`, get the user's approval,
    then refine it with real blocks (fixtures, furniture, trees, lawn hatch).
+10. **Wait on the pipe thread, never on the main thread.** `cad_command` / `cad_lisp` queue the text, then poll the CAD
+    (through the dispatcher) until it is idle; a command still waiting for input at the timeout is cancelled.
+11. **Short LISP lines, plain LISP.** CAD&PILLAR's LISP reader crashes on one long line (a 1,021-character line took
+    the CAD down), and it registers none of a plugin's .NET commands or LISP functions, nor accepts `setvar` from
+    one. So LISP is sent in lines of about 200 characters and returns its value as JSON written by the LISP itself.
+    `src/live_check.py` checks all of it on a running CAD.
 
 ## Example: a 2-bedroom house on a plot
 
@@ -136,6 +145,7 @@ cadbridge/
   src/CadBridge.cs                            the plugin: pipe server, dispatcher, ops, MiniJson
   src/build.ps1                               pwsh src/build.ps1 [-Target net8|net48|all]
   src/cadbridge_mcp.py                        the MCP server (fastmcp)
+  src/live_check.py                           live acceptance check on a running CAD (works in a new drawing)
   examples/                                   the house test
 ```
 

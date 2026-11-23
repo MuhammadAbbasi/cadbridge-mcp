@@ -224,8 +224,9 @@ def _summary(tool: str, args: dict) -> dict:
             k = str(o.get("op", "?")) if isinstance(o, dict) else "?"
             counts[k] = counts.get(k, 0) + 1
         return {"ops": counts}
-    if tool == "cad_command":
-        return {"command": (str(args.get("text", "")).split() or ["?"])[0][:40]}
+    if tool in ("cad_command", "cad_lisp"):  # the command verb, or the first LISP function called
+        m = re.search(r"[(]\s*(?:progn\s*[(]\s*)?([^\s()]+)|(\S+)", str(args.get("text") or args.get("expr") or ""))
+        return {"command": ((m.group(1) or m.group(2)) if m else "?")[:40]}
     if tool in ("cad_open", "cad_save", "cad_new"):
         p = args.get("path") or args.get("template") or ""
         return {"ext": Path(p).suffix.lower() if p else None}
@@ -321,22 +322,62 @@ def cad_ops(ops: list[dict]) -> list:
       {"op":"text","x","y","height","text","rotation"?,"width"?,"attach"? (5=middle centre, 1=top left)}
       {"op":"dim","x1","y1","x2","y2","dx","dy","scale"?}  aligned dimension through (dx,dy); scale = DIMSCALE (e.g. 50 for 1:50 in mm)
       {"op":"hatch","points":[[x,y],...],"pattern"? ("SOLID"),"scale"?}
-      {"op":"insert","name","x","y","rotation"?,"scale"?}  (block must exist in the drawing)
+      {"op":"insert","name","x","y","z"?,"rotation"?,"scale"?,"xscale"?,"yscale"?,"zscale"?}  (block must exist;
+         a negative xscale mirrors it, e.g. a left-hand door from a right-hand one)
       {"op":"block_define","name","entities":[create ops in block coords, base 0,0]}  (redefines in place)
       {"op":"block_import","path":"x.dwg","name"?,"overwrite"?}  -> {name, min, max, ...}: a DWG as a block
       {"op":"block_info","name"}  -> size/content of a block (use min/max to pick an insert scale)
       {"op":"get","handle"}  {"op":"delete","handles":[...]}  {"op":"set","handle","layer"?,"color"?,"text"?}
-      {"op":"move"|"copy","handles":[...],"dx","dy"}  {"op":"rotate","handles":[...],"angle","bx","by"}
+      {"op":"move"|"copy","handles":[...],"dx","dy","dz"?}  {"op":"rotate","handles":[...],"angle","bx","by"}  (about Z)
+    3D (always WCS, whatever the current UCS; each returns {handle, min, max}; points are [x,y] or [x,y,z]):
+      {"op":"box","min":[x,y,z],"max":[x,y,z],"rotation"? (degrees about Z, around min)}
+      {"op":"cylinder","base":[x,y,z],"r","h","axis"? ([0,0,1]),"r2"? (top radius: a cone)}
+      {"op":"sphere","center":[x,y,z],"r"}
+      {"op":"extrude","points":[[x,y],...],"z"? (elevation),"height"} or {"op":"extrude","handle","height","erase_profile"?}
+      {"op":"union"|"subtract"|"intersect","target":handle,"tools":[handles]}  (tools are consumed; returns the target)
+      {"op":"face3d","points":[3 or 4 [x,y,z]]}  {"op":"poly3d","points":[[x,y,z],...],"closed"?}
+    get/list report "volume" for solids and "scale" [x,y,z] for inserts.
       {"op":"getvar","name"}  {"op":"setvar","name","value"}  {"op":"info"}  {"op":"list",...}
+    Linetypes missing from the drawing are loaded from the CAD's own .lin files (acad/acadiso, cadp/cadpiso; DASHED etc.
+    are found under their Italian names in CAD&PILLAR). CAD&PILLAR refuses setvar from the plugin: use cad_lisp
+    '(setvar "NAME" value)' there.
     """
     return call({"op": "batch", "ops": ops})
 
 
+def _job(req: dict) -> dict:
+    res = call(req)
+    if res.get("status") not in ("done", "idle"):  # timeouts, cancels, busy: worth seeing in the usage log
+        log_event("command_end", status=res.get("status"), command=res.get("command"), ms=res.get("ms"))
+    return res
+
+
 @mcp.tool
-def cad_command(text: str) -> str:
-    """Queue a command line string in the active drawing (any AutoCAD / CAD&PILLAR command, e.g. "_.ZOOM _E").
-    Asynchronous: it runs after this returns; read results back with cad_list / cad_info."""
-    return call({"op": "command", "text": text})
+def cad_command(text: str, timeout_s: float = 30, on_timeout: str = "cancel", wait: bool = True) -> dict | str:
+    """Run a command line string in the active drawing (any AutoCAD / CAD&PILLAR command, e.g. "_.ZOOM _E") and
+    WAIT until the CAD is idle again. Returns {status: done|timeout|cancelled|busy, ms, command, prompt,
+    created: {count, handles}}. A command still waiting for input at timeout_s is cancelled (on_timeout="cancel")
+    or left open ("leave"). "busy": the CAD was already inside a command (the user's?): cad_cancel or ask the user.
+    Prefer cad_ops (exact, WCS, one undo step) and cad_lisp (returns values); wait=False only queues it."""
+    if not wait:
+        return call({"op": "command", "text": text, "async": True})
+    return _job({"op": "command", "text": text, "timeout_ms": int(timeout_s * 1000), "on_timeout": on_timeout})
+
+
+@mcp.tool
+def cad_lisp(expr: str, timeout_s: float = 30) -> dict:
+    """Evaluate AutoLISP in the active drawing and return its value as JSON: {status: done|error|timeout|cancelled|busy,
+    value, error, created, ms}. expr may hold several forms (the last one's value is returned). Lists -> arrays,
+    points -> [x,y,z], enames and selection sets -> handles, nil -> null, T -> true. Use it to read anything
+    (sysvars, tables, dictionaries, files) instead of writing USERI/USERS variables and polling."""
+    return _job({"op": "lisp", "expr": expr, "timeout_ms": int(timeout_s * 1000)})
+
+
+@mcp.tool
+def cad_cancel() -> dict:
+    """Cancel whatever command is active in the CAD (ESC ESC) and wait until it is idle:
+    {status: idle (nothing was running) | cancelled | still_busy, cancelled: <command names>}."""
+    return _job({"op": "cancel"})
 
 
 @mcp.tool
@@ -408,8 +449,8 @@ def screenshot_png(path: str | None = None, max_px: int = 1600) -> bytes:
 def cad_screenshot(zoom_extents: bool = True) -> Image:
     """Image of the CAD window, to show the user the current drawing (e.g. a sketch to accept)."""
     if zoom_extents:
-        call({"op": "command", "text": "_.ZOOM _E"})
-        time.sleep(1.0)  # the command is queued; let it run
+        call({"op": "command", "text": "_.ZOOM _E", "timeout_ms": 15000})
+        time.sleep(0.3)  # the zoom has finished; let the window repaint
     return Image(data=screenshot_png(), format="png")
 
 
