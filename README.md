@@ -3,6 +3,18 @@
 **AI agents edit the drawing open in AutoCAD or CAD&PILLAR, live, as DWG.** There is no DXF conversion, no copy of
 the file, and no COM.
 
+## Quick install: let your AI agent do it
+
+Paste this into Claude Code, Codex, Gemini CLI, Cursor, Antigravity or any agent that can run commands on your PC:
+
+```text
+Install CadBridge for me. Download https://github.com/MuhammadAbbasi/AutoCad-CadPiller-MCP (git clone, or the ZIP of the main branch) into a folder of your choice, then read cadbridge/AGENTS.md and follow it.
+```
+
+The agent finds your CAD and your AI apps, installs everything for this Windows user (no admin rights), and asks you
+to close the CAD when it has to. Then restart the CAD and your AI app, and ask: *"use cad_status, then list the
+layers of the open drawing"*.
+
 Claude Code, Claude Desktop, Codex, Cursor, Windsurf, VS Code Copilot, Google Antigravity, Gemini CLI, or any other
 [MCP](https://modelcontextprotocol.io) client gets tools to read the open drawing, change it in transactions, show
 it as an image and save it.
@@ -13,7 +25,7 @@ it as an image and save it.
                                               only)          CAD's main thread, .NET API)
 ```
 
-## Install
+## Install by hand
 
 1. [Download the ZIP](https://github.com/MuhammadAbbasi/AutoCad-CadPiller-MCP/archive/refs/heads/main.zip) (or clone the repository) and unzip it on the PC. Only the [`cadbridge/`](cadbridge) folder is needed.
 2. If this Windows user has never started the CAD, start it once and close it.
@@ -30,12 +42,9 @@ it as an image and save it.
 No administrator rights are needed: everything is per Windows user. **[`Uninstall.cmd`](cadbridge/Uninstall.cmd)**
 removes it all. For automation: `installer.ps1 -Cads all -Clients found -Yes` (or `-Clients claude-code,cursor`).
 
-**Or let your AI agent install it.** Open Claude Code, Codex, Gemini CLI, Cursor... in the unzipped folder and paste:
-
-> Install CadBridge for me: read `cadbridge/AGENTS.md` and follow it.
-
-[`cadbridge/AGENTS.md`](cadbridge/AGENTS.md) tells the agent what CadBridge is, how to run the installer without
-questions, what each error means, how to verify the connection, and never to close your CAD itself.
+[`cadbridge/AGENTS.md`](cadbridge/AGENTS.md) is what the quick install has the agent read: what CadBridge is, how
+to run the installer without questions, what each error means, how to verify the connection, and never to close
+your CAD itself.
 
 ## Supported
 
