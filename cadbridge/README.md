@@ -11,6 +11,9 @@ This folder is everything a user needs. Copy it to the PC, or download the repos
    5. done.
 3. Start the CAD, open a drawing, start the AI app and ask: *"use cad_status, then list the layers of the open drawing"*.
 
+Nothing has to be started by hand afterwards: the CAD loads the plugin at every start, and each AI app starts the
+MCP server itself when it starts (stdio). Open the CAD and the AI app in any order.
+
 To remove it, double-click **`Uninstall.cmd`**. The full documentation is in the [repository README](../README.md).
 
 | Folder | Contents |
@@ -20,6 +23,15 @@ To remove it, double-click **`Uninstall.cmd`**. The full documentation is in the
 | `VERSION`, `CHANGELOG.md` | the version number (the only copy) and what changed in each version |
 | `src/` | plugin source (`CadBridge.cs`), its build script, the MCP server (`cadbridge_mcp.py`) |
 | `examples/` | a 2-bedroom house example (sketch, then blocks and landscape) |
+
+## Usage log
+
+The server writes one JSON line per event to `%LOCALAPPDATA%\CadBridge\server.log`. For a team, install with
+`Install.cmd -LogDir "\\server\share\cadbridge-logs"` (any folder every user can write): each user then also
+appends to `<folder>\<user>\<user>_<YYYY-MM>.jsonl` (one folder per user; the PC is in every line). Events: `server_start`, `client_connected` (which AI app),
+`connected` (CAD and plugin versions), `tool` (`ok`, `ms`, failure `kind`), `cad_gone` (`crashed` when Windows logged
+an application error), `server_stop`. Failure kinds: `cad_not_running`, `plugin_not_loaded`, `several_cads`,
+`cad_gone`, `pipe_unreachable`, `interrupted`, `cad_error`. No drawing content or paths are logged.
 
 ## Version
 

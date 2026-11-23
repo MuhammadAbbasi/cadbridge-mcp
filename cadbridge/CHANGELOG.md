@@ -3,6 +3,19 @@
 Versions follow `MAJOR.MINOR.PATCH`: MAJOR when an existing tool or op changes in a way that breaks callers,
 MINOR for new tools, ops or supported CADs, PATCH for fixes. The number lives only in `VERSION`.
 
+## 1.2.0 - 2026-11-23
+
+- Usage log: the MCP server writes one JSON line per event to `%LOCALAPPDATA%\CadBridge\server.log` and, when the
+  installer is given `-LogDir <folder>` (or `CADBRIDGE_LOG_DIR` is set), also to
+  `<folder>\<user>\<user>_<YYYY-MM>.jsonl` (one folder per user; the PC is in every line). Events: `server_start` / `server_stop` (calls, errors, minutes),
+  `client_connected` (the AI app), `connected` (CAD product and version, plugin version, `match`), `tool` (name, `ok`,
+  `ms`, failure `kind` and message, a summary of what was done: op names, command verb, file extension; never drawing
+  content or paths) and `cad_gone` (the CAD closed, `crashed` plus the exception code when Windows recorded an
+  application error), plus `shared_log_unreachable`. Logging never fails a tool.
+- Failures now have kinds: `cad_not_running`, `plugin_not_loaded` (the CAD runs but the plugin is not in it: new,
+  with its own message), `several_cads`, `cad_gone`, `pipe_unreachable`, `interrupted` (no reply: the CAD closed or
+  crashed mid-request), `cad_error` (the CAD refused the request).
+
 ## 1.1.0 - 2026-11-23
 
 - Installer: two more AI apps. Google Antigravity (IDE and `agy` CLI) gets the server in

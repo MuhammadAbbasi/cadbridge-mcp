@@ -6,11 +6,13 @@
 #   -Cads "all"           skip the CAD question     (all supported CADs found)
 #   -Clients "a,b"        skip the AI-app question  (claude-code, claude-desktop, codex, cursor, windsurf, vscode, antigravity, gemini-cli, all)
 #   -Yes                  no questions: assume yes, do not wait for apps to be closed (CAD must be closed)
+#   -LogDir "\\server\share\logs"   also write the usage log (connections, failures, tool calls) to this shared folder
 param(
     [switch]$Uninstall,
     [string]$Cads = "",
     [string]$Clients = "",
-    [switch]$Yes
+    [switch]$Yes,
+    [string]$LogDir = ""
 )
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
@@ -287,6 +289,19 @@ if (-not (Test-Path $Py)) { throw 'Python could not be installed (internet acces
 if ($LASTEXITCODE) { throw 'Python libraries could not be installed (internet access?)' }
 Copy-Item (Join-Path $Here 'src\cadbridge_mcp.py') $Server -Force
 Copy-Item (Join-Path $Here 'VERSION') (Join-Path $PyDir 'VERSION') -Force
+if ($LogDir) {
+    # Without -LogDir an earlier LOG_DIR is kept; the server always logs locally too (%LOCALAPPDATA%\CadBridge\server.log).
+    Write-Utf8 (Join-Path $PyDir 'LOG_DIR') $LogDir
+    try {
+        New-Item -ItemType Directory -Force $LogDir | Out-Null
+        # No leading dot: Samba shares hide dot files, and a hidden file defeats a plain Remove-Item.
+        $probe = Join-Path $LogDir "write-test-$env:COMPUTERNAME-$env:USERNAME.tmp"
+        Set-Content $probe 'ok'; Remove-Item $probe -Force
+        Say "    - usage log: $LogDir" DarkGray
+    } catch {
+        Say "    ! usage log folder not writable now: $LogDir (the server logs locally until it is)" Yellow
+    }
+}
 Get-ChildItem $PyDir -Filter '*.py' | Where-Object { $_.Name -ne 'cadbridge_mcp.py' -and $Legacy -contains $_.BaseName.Replace('_mcp', '') } | Remove-Item
 Push-Location $PyDir
 try { & $Py -c "import cadbridge_mcp" } finally { Pop-Location }
