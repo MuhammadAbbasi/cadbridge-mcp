@@ -3,6 +3,11 @@
 Versions follow `MAJOR.MINOR.PATCH`: MAJOR when an existing tool or op changes in a way that breaks callers,
 MINOR for new tools, ops or supported CADs, PATCH for fixes. The number lives only in `VERSION`.
 
+## 1.3.2 - 2026-11-23
+
+- Installer: the Python download and the library install show uv's own progress bars and the packages installed,
+  instead of running silently for a minute or more.
+
 ## 1.3.1 - 2026-11-23
 
 - Installer: on a PC without Python, the install stopped at `Downloading cpython-3.12...` with a `NativeCommandError`.

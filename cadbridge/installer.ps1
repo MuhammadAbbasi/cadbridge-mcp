@@ -289,11 +289,16 @@ if (-not $uv) {
     if (-not (Test-Path $uv)) { throw 'uv could not be installed (internet access?)' }
 }
 New-Item -ItemType Directory -Force $PyDir | Out-Null
-# uv writes its progress ("Downloading cpython...") to stderr. Windows PowerShell 5.1 turns redirected stderr lines into
-# errors, which $ErrorActionPreference = 'Stop' makes fatal, so uv runs with 'Continue' and is judged by its exit code.
+# uv draws its download progress bars on stderr, so its output is not redirected: the user sees them. Windows
+# PowerShell 5.1 turns redirected stderr lines into errors (fatal under 'Stop'), so uv also runs under 'Continue'
+# and is judged by its exit code and the Python it leaves behind.
 $ErrorActionPreference = 'Continue'
-if (-not (Test-Path $Py)) { & $uv venv --python 3.12 --python-preference managed (Join-Path $PyDir 'venv') 2>&1 | Out-Null }
-& $uv pip install --quiet --python $Py 'fastmcp>=4.2,<5' pywin32 pillow 2>&1 | Out-Null
+if (-not (Test-Path $Py)) {
+    Say '    - downloading Python 3.12 (about 20 MB)' DarkGray
+    & $uv venv --python 3.12 --python-preference managed (Join-Path $PyDir 'venv')
+}
+Say '    - Python libraries (fastmcp, pywin32, pillow)' DarkGray
+& $uv pip install --python $Py 'fastmcp>=4.2,<5' pywin32 pillow
 $pipExit = $LASTEXITCODE
 $ErrorActionPreference = 'Stop'
 if (-not (Test-Path $Py)) { throw 'Python could not be installed (internet access?)' }
