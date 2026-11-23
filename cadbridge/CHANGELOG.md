@@ -3,6 +3,13 @@
 Versions follow `MAJOR.MINOR.PATCH`: MAJOR when an existing tool or op changes in a way that breaks callers,
 MINOR for new tools, ops or supported CADs, PATCH for fixes. The number lives only in `VERSION`.
 
+## 1.1.0 - 2026-11-23
+
+- Installer: two more AI apps. Google Antigravity (IDE and `agy` CLI) gets the server in
+  `.gemini\config\mcp_config.json`, and also in the older `.gemini\antigravity\mcp_config.json` when that folder
+  exists; the Gemini CLI in `.gemini\settings.json`. Other servers in those files are kept unchanged; uninstall
+  removes only `cadbridge`.
+
 ## 1.0.0 - 2026-11-23
 
 First numbered release (the same code as the 2026-11-18 builds, now stamped).

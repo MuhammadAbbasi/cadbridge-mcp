@@ -4,7 +4,7 @@
 # Everything missing is downloaded: uv, Python and the Python libraries.
 #   -Uninstall            remove everything this installer added
 #   -Cads "all"           skip the CAD question     (all supported CADs found)
-#   -Clients "a,b"        skip the AI-app question  (claude-code, claude-desktop, codex, cursor, windsurf, vscode, all)
+#   -Clients "a,b"        skip the AI-app question  (claude-code, claude-desktop, codex, cursor, windsurf, vscode, antigravity, gemini-cli, all)
 #   -Yes                  no questions: assume yes, do not wait for apps to be closed (CAD must be closed)
 param(
     [switch]$Uninstall,
@@ -92,6 +92,7 @@ $ClaudeDesktopFiles = @(Join-Path $env:APPDATA 'Claude\claude_desktop_config.jso
 Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Packages') -Directory -Filter 'Claude_*' -ErrorAction SilentlyContinue |
     ForEach-Object { $ClaudeDesktopFiles += Join-Path $_.FullName 'LocalCache\Roaming\Claude\claude_desktop_config.json' }
 
+$GeminiDir = Join-Path $env:USERPROFILE '.gemini'   # shared by Google Antigravity and the Gemini CLI
 # Procs: "ProcessName|path regex". Claude Desktop and the Claude Code CLI are both claude.exe: told apart by path.
 $AppList = @(
     [pscustomobject]@{ Key = 'claude-code'; Label = 'Claude Code (CLI / IDE)'; Found = [bool](Get-Command claude -ErrorAction SilentlyContinue); Procs = @() }
@@ -100,6 +101,8 @@ $AppList = @(
     [pscustomobject]@{ Key = 'cursor'; Label = 'Cursor'; Found = Test-Path (Join-Path $env:USERPROFILE '.cursor'); Procs = @('Cursor|') }
     [pscustomobject]@{ Key = 'windsurf'; Label = 'Windsurf'; Found = Test-Path (Join-Path $env:USERPROFILE '.codeium\windsurf'); Procs = @('Windsurf|') }
     [pscustomobject]@{ Key = 'vscode'; Label = 'VS Code (GitHub Copilot agent)'; Found = Test-Path (Join-Path $env:APPDATA 'Code\User'); Procs = @('Code|\\Microsoft VS Code\\') }
+    [pscustomobject]@{ Key = 'antigravity'; Label = 'Google Antigravity (IDE / agy CLI)'; Found = (Test-Path (Join-Path $GeminiDir 'config')) -or (Test-Path (Join-Path $GeminiDir 'antigravity')) -or [bool](Get-Command agy -ErrorAction SilentlyContinue); Procs = @('Antigravity|', 'agy|') }
+    [pscustomobject]@{ Key = 'gemini-cli'; Label = 'Gemini CLI'; Found = [bool](Get-Command gemini -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $GeminiDir 'settings.json')); Procs = @() }
 )
 foreach ($a in $AppList) { $a | Add-Member Ok $true; $a | Add-Member Note $(if ($a.Found) { '(found)' } else { '' }) }
 
@@ -167,6 +170,23 @@ function Configure($key, $add) {
         'vscode' {
             $e = $null; if ($add) { $e = [ordered]@{ type = 'stdio'; command = $Py; args = @($Server) } }
             Set-JsonServer (Join-Path $env:APPDATA 'Code\User\mcp.json') 'servers' $Name $e
+        }
+        'antigravity' {
+            # Current releases read .gemini\config\mcp_config.json, earlier ones .gemini\antigravity\mcp_config.json:
+            # every one of the two folders that exists gets the entry; on a fresh PC, the current one.
+            $files = @(@('config', 'antigravity') | Where-Object { Test-Path (Join-Path $GeminiDir $_) } |
+                ForEach-Object { Join-Path $GeminiDir "$_\mcp_config.json" })
+            if (-not $files) {
+                if (-not $add) { return }
+                New-Item -ItemType Directory -Force (Join-Path $GeminiDir 'config') | Out-Null
+                $files = @(Join-Path $GeminiDir 'config\mcp_config.json')
+            }
+            foreach ($f in $files) { Set-JsonServer $f 'mcpServers' $Name $stdio }
+        }
+        'gemini-cli' {
+            $e = $null; if ($add) { $e = [ordered]@{ command = $Py; args = @($Server); timeout = 60000 } }
+            if ($add) { New-Item -ItemType Directory -Force $GeminiDir | Out-Null }
+            Set-JsonServer (Join-Path $GeminiDir 'settings.json') 'mcpServers' $Name $e
         }
     }
 }

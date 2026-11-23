@@ -3,7 +3,7 @@
 **AI agents edit the drawing open in AutoCAD or CAD&PILLAR, live, as DWG.** There is no DXF conversion, no copy of
 the file, and no COM.
 
-Claude Code, Claude Desktop, Codex, Cursor, Windsurf, VS Code Copilot, or any other
+Claude Code, Claude Desktop, Codex, Cursor, Windsurf, VS Code Copilot, Google Antigravity, Gemini CLI, or any other
 [MCP](https://modelcontextprotocol.io) client gets tools to read the open drawing, change it in transactions, show
 it as an image and save it.
 
@@ -47,6 +47,8 @@ removes it all. For automation: `installer.ps1 -Cads all -Clients claude-code,cu
 | Cursor | `%USERPROFILE%\.cursor\mcp.json` |
 | Windsurf | `%USERPROFILE%\.codeium\windsurf\mcp_config.json` |
 | VS Code (Copilot agent) | `%APPDATA%\Code\User\mcp.json` |
+| Google Antigravity (IDE / `agy`) | `%USERPROFILE%\.gemini\config\mcp_config.json` (and `.gemini\antigravity\mcp_config.json` when present) |
+| Gemini CLI | `%USERPROFILE%\.gemini\settings.json` |
 | anything else | stdio: `%LOCALAPPDATA%\CadBridge\venv\Scripts\python.exe %LOCALAPPDATA%\CadBridge\cadbridge_mcp.py` |
 
 ## Tools
