@@ -3,6 +3,13 @@
 Versions follow `MAJOR.MINOR.PATCH`: MAJOR when an existing tool or op changes in a way that breaks callers,
 MINOR for new tools, ops or supported CADs, PATCH for fixes. The number lives only in `VERSION`.
 
+## 1.3.1 - 2026-11-23
+
+- Installer: on a PC without Python, the install stopped at `Downloading cpython-3.12...` with a `NativeCommandError`.
+  uv writes its progress to stderr, and Windows PowerShell 5.1 turned those lines into fatal errors. uv now runs with
+  errors non-fatal and is judged by its exit code and the Python it leaves behind. Earlier test PCs had Python
+  already, so the download never ran there.
+
 ## 1.3.0 - 2026-11-23
 
 From the 23 Nov test session (a 3D house with PV on CAD&PILLAR 11): about 40 polling calls and 4 manual ESC presses.

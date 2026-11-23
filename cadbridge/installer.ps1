@@ -289,10 +289,15 @@ if (-not $uv) {
     if (-not (Test-Path $uv)) { throw 'uv could not be installed (internet access?)' }
 }
 New-Item -ItemType Directory -Force $PyDir | Out-Null
+# uv writes its progress ("Downloading cpython...") to stderr. Windows PowerShell 5.1 turns redirected stderr lines into
+# errors, which $ErrorActionPreference = 'Stop' makes fatal, so uv runs with 'Continue' and is judged by its exit code.
+$ErrorActionPreference = 'Continue'
 if (-not (Test-Path $Py)) { & $uv venv --python 3.12 --python-preference managed (Join-Path $PyDir 'venv') 2>&1 | Out-Null }
-if (-not (Test-Path $Py)) { throw 'Python could not be installed (internet access?)' }
 & $uv pip install --quiet --python $Py 'fastmcp>=4.2,<5' pywin32 pillow 2>&1 | Out-Null
-if ($LASTEXITCODE) { throw 'Python libraries could not be installed (internet access?)' }
+$pipExit = $LASTEXITCODE
+$ErrorActionPreference = 'Stop'
+if (-not (Test-Path $Py)) { throw 'Python could not be installed (internet access?)' }
+if ($pipExit) { throw 'Python libraries could not be installed (internet access?)' }
 Copy-Item (Join-Path $Here 'src\cadbridge_mcp.py') $Server -Force
 Copy-Item (Join-Path $Here 'VERSION') (Join-Path $PyDir 'VERSION') -Force
 if ($LogDir) {
