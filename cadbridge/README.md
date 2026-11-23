@@ -14,12 +14,17 @@ This folder is everything a user needs. Copy it to the PC, or download the repos
 Nothing has to be started by hand afterwards: the CAD loads the plugin at every start, and each AI app starts the
 MCP server itself when it starts (stdio). Open the CAD and the AI app in any order.
 
+**With an AI agent:** open Claude Code, Codex, Gemini CLI, Cursor... in this folder and paste
+*"Install CadBridge for me: read AGENTS.md in this folder and follow it."* [`AGENTS.md`](AGENTS.md) has everything
+the agent needs (non-interactive install, errors, verification).
+
 To remove it, double-click **`Uninstall.cmd`**. The full documentation is in the [repository README](../README.md).
 
 | Folder | Contents |
 |---|---|
 | `bin/net8/CadBridge.dll` | plugin for AutoCAD 2025+ and CAD&PILLAR 11 (.NET 8) |
 | `bin/net48/CadBridge.dll` | plugin for AutoCAD 2021-2024 (.NET Framework 4.8) |
+| `AGENTS.md` | guide for AI agents: install for the user, verify, troubleshoot |
 | `VERSION`, `CHANGELOG.md` | the version number (the only copy) and what changed in each version |
 | `src/` | plugin source (`CadBridge.cs`), its build script, the MCP server (`cadbridge_mcp.py`) |
 | `examples/` | a 2-bedroom house example (sketch, then blocks and landscape) |

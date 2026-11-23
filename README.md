@@ -28,7 +28,14 @@ it as an image and save it.
    | 5. Done | start the CAD, open a drawing, ask your AI app: *"use cad_status, then list the layers of the open drawing"* |
 
 No administrator rights are needed: everything is per Windows user. **[`Uninstall.cmd`](cadbridge/Uninstall.cmd)**
-removes it all. For automation: `installer.ps1 -Cads all -Clients claude-code,cursor -Yes`.
+removes it all. For automation: `installer.ps1 -Cads all -Clients found -Yes` (or `-Clients claude-code,cursor`).
+
+**Or let your AI agent install it.** Open Claude Code, Codex, Gemini CLI, Cursor... in the unzipped folder and paste:
+
+> Install CadBridge for me: read `cadbridge/AGENTS.md` and follow it.
+
+[`cadbridge/AGENTS.md`](cadbridge/AGENTS.md) tells the agent what CadBridge is, how to run the installer without
+questions, what each error means, how to verify the connection, and never to close your CAD itself.
 
 ## Supported
 
@@ -42,7 +49,7 @@ removes it all. For automation: `installer.ps1 -Cads all -Clients claude-code,cu
 | AI app | Configured in |
 |---|---|
 | Claude Code | `claude mcp add cadbridge -s user` |
-| Claude Desktop | `%APPDATA%\Claude\claude_desktop_config.json` (plus the Microsoft Store copy) |
+| Claude Desktop | `%LOCALAPPDATA%\Claude-Data\claude_*\claude_desktop_config.json` (current Microsoft Store builds), `%APPDATA%\Claude\claude_desktop_config.json` (older builds) |
 | OpenAI Codex | `%USERPROFILE%\.codex\config.toml` |
 | Cursor | `%USERPROFILE%\.cursor\mcp.json` |
 | Windsurf | `%USERPROFILE%\.codeium\windsurf\mcp_config.json` |
@@ -124,6 +131,7 @@ Both run through the MCP layer (`fastmcp.Client` calling `cad_ops`).
 ```
 cadbridge/
   Install.cmd, Uninstall.cmd, installer.ps1   one-click installer (Windows PowerShell 5.1)
+  AGENTS.md                                   what an AI agent needs to install, verify and use it
   bin/net8/, bin/net48/                       prebuilt plugin
   src/CadBridge.cs                            the plugin: pipe server, dispatcher, ops, MiniJson
   src/build.ps1                               pwsh src/build.ps1 [-Target net8|net48|all]

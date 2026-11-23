@@ -3,6 +3,14 @@
 Versions follow `MAJOR.MINOR.PATCH`: MAJOR when an existing tool or op changes in a way that breaks callers,
 MINOR for new tools, ops or supported CADs, PATCH for fixes. The number lives only in `VERSION`.
 
+## 1.2.1 - 2026-11-23
+
+- Installer: Claude Desktop from the Microsoft Store now gets the server. Its current builds read
+  `%LOCALAPPDATA%\Claude-Data\claude_*\claude_desktop_config.json`, not the `%APPDATA%` or `Packages` copies.
+- Installer: `-Clients found` configures the AI apps found on the PC (the interactive default) without questions.
+- `AGENTS.md`: a guide for AI agents to understand CadBridge and install it for the user (non-interactive install,
+  what each installer message means, verification, failure kinds). Users paste one line into their agent.
+
 ## 1.2.0 - 2026-11-23
 
 - Usage log: the MCP server writes one JSON line per event to `%LOCALAPPDATA%\CadBridge\server.log` and, when the

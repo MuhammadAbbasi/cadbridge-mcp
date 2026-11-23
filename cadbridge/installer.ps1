@@ -4,7 +4,8 @@
 # Everything missing is downloaded: uv, Python and the Python libraries.
 #   -Uninstall            remove everything this installer added
 #   -Cads "all"           skip the CAD question     (all supported CADs found)
-#   -Clients "a,b"        skip the AI-app question  (claude-code, claude-desktop, codex, cursor, windsurf, vscode, antigravity, gemini-cli, all)
+#   -Clients "a,b"        skip the AI-app question  (claude-code, claude-desktop, codex, cursor, windsurf, vscode, antigravity,
+#                         gemini-cli; "found" = the apps found on this PC; "all" = every app, found or not)
 #   -Yes                  no questions: assume yes, do not wait for apps to be closed (CAD must be closed)
 #   -LogDir "\\server\share\logs"   also write the usage log (connections, failures, tool calls) to this shared folder
 param(
@@ -37,6 +38,7 @@ function Pick($items, $label, $preset) {
     # Multiple choice by number; returns the chosen items. $preset: '' (ask), 'all' or a comma list of keys.
     if ($preset) {
         if ($preset -eq 'all') { return $items | Where-Object { $_.Ok } }
+        if ($preset -eq 'found') { return $items | Where-Object { $_.Ok -and $_.Found } }   # the interactive default
         $keys = $preset -split '[,\s]+' | Where-Object { $_ }
         $sel = @($items | Where-Object { $keys -contains $_.Key })
         foreach ($k in $keys) { if (-not ($items | Where-Object { $_.Key -eq $k })) { throw "unknown choice: $k" } }
@@ -93,6 +95,10 @@ function Find-Cads {
 $ClaudeDesktopFiles = @(Join-Path $env:APPDATA 'Claude\claude_desktop_config.json')
 Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Packages') -Directory -Filter 'Claude_*' -ErrorAction SilentlyContinue |
     ForEach-Object { $ClaudeDesktopFiles += Join-Path $_.FullName 'LocalCache\Roaming\Claude\claude_desktop_config.json' }
+# Current Store releases keep their profile, and the config they actually read, in %LOCALAPPDATA%\Claude-Data\<package>
+# (measured on 6.28899: the two locations above are no longer read there).
+Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Claude-Data') -Directory -Filter 'claude_*' -ErrorAction SilentlyContinue |
+    ForEach-Object { $ClaudeDesktopFiles += Join-Path $_.FullName 'claude_desktop_config.json' }
 
 $GeminiDir = Join-Path $env:USERPROFILE '.gemini'   # shared by Google Antigravity and the Gemini CLI
 # Procs: "ProcessName|path regex". Claude Desktop and the Claude Code CLI are both claude.exe: told apart by path.
