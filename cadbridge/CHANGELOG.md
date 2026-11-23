@@ -3,6 +3,18 @@
 Versions follow `MAJOR.MINOR.PATCH`: MAJOR when an existing tool or op changes in a way that breaks callers,
 MINOR for new tools, ops or supported CADs, PATCH for fixes. The number lives only in `VERSION`.
 
+## 1.3.3 - 2026-11-23
+
+First public release from `MuhammadAbbasi/cadbridge-mcp`.
+
+- Download: every release now carries `cadbridge.zip` (about 100 KB: installer, prebuilt plugin for AutoCAD
+  2021-2026 and CAD&PILLAR 11, MCP server). The latest one is always at
+  `https://github.com/MuhammadAbbasi/cadbridge-mcp/releases/latest/download/cadbridge.zip`.
+- Install with an AI agent: paste the prompt at the top of the README; `AGENTS.md` tells the agent how to download,
+  install and verify.
+- `Install.cmd` / `Uninstall.cmd` always have Windows line endings, whatever system builds the ZIP.
+- No behaviour change in the plugin or the tools (the MCP server was only reformatted).
+
 ## 1.3.2 - 2026-11-23
 
 - Installer: the Python download and the library install show uv's own progress bars and the packages installed,

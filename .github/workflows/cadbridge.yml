@@ -1,0 +1,34 @@
+name: CadBridge
+
+# What a user downloads: the installer must parse in Windows PowerShell 5.1 and stay ASCII, the plugin must build for
+# both targets, the Python must pass ruff. (The live checks need a running CAD: cadbridge/src/live_check.py.)
+on:
+  push:
+    branches: [main]
+    paths: ["cadbridge/**", ".github/workflows/cadbridge.yml"]
+  pull_request:
+    paths: ["cadbridge/**", ".github/workflows/cadbridge.yml"]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer parses in Windows PowerShell 5.1 and is ASCII
+        shell: powershell
+        run: |
+          foreach ($f in 'cadbridge\installer.ps1', 'cadbridge\src\build.ps1') {
+            $t = $null; $e = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $f), [ref]$t, [ref]$e)
+            if ($e.Count) { $e; throw "$f does not parse in PowerShell 5.1" }
+          }
+          if ((Get-Content cadbridge\installer.ps1 -Raw) -match '[^\x00-\x7F]') { throw 'installer.ps1 is not ASCII' }
+      - name: Plugin builds for net8 and net48
+        shell: pwsh
+        run: ./cadbridge/src/build.ps1
+      - name: Ruff
+        run: |
+          pip install ruff==0.16.1   # the version uv.lock pins, so formatting matches
+          ruff check cadbridge
+          ruff format --check cadbridge

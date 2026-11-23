@@ -33,9 +33,15 @@ COM is not used (CAD&PILLAR disables it), so nothing else needs to be enabled in
 
 ## Install
 
-1. **Get the files.** If the user gave you only the repository URL, download it first: `git clone <url>`, or without
-   git `Invoke-WebRequest <url>/archive/refs/heads/main.zip` and `Expand-Archive`. Any folder works: the installer
-   copies everything it needs to `%LOCALAPPDATA%\CadBridge`.
+1. **Get the files.** If you do not have this folder yet, download the latest release and unzip it (any folder works:
+   the installer copies everything it needs to `%LOCALAPPDATA%\CadBridge`):
+
+   ```
+   Invoke-WebRequest https://github.com/MuhammadAbbasi/cadbridge-mcp/releases/latest/download/cadbridge.zip -OutFile cadbridge.zip
+   Expand-Archive cadbridge.zip -DestinationPath . -Force
+   ```
+
+   The ZIP holds this `cadbridge` folder. A clone of the repository works too: use its `cadbridge` folder.
    **Check the folder.** It must contain `installer.ps1`, `VERSION`, `bin\net8\CadBridge.dll`, `bin\net48\CadBridge.dll`
    and `src\cadbridge_mcp.py`. In the full repository this is the `cadbridge\` folder.
 2. **Check the CAD is closed.** `tasklist /FI "IMAGENAME eq acad.exe"` and `tasklist /FI "IMAGENAME eq cadp.exe"`.

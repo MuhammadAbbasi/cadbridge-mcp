@@ -1,10 +1,14 @@
 name: CI
 
+# The original AutoCAD MCP Pro server's suite. CadBridge has its own, much faster workflow (cadbridge.yml), so a
+# change only to CadBridge or to documentation does not run this one.
 on:
   push:
     branches: [main]
+    paths-ignore: ["cadbridge/**", "README.md", ".github/workflows/cadbridge*.yml", ".github/ISSUE_TEMPLATE/**"]
   pull_request:
     branches: [main]
+    paths-ignore: ["cadbridge/**", "README.md", ".github/workflows/cadbridge*.yml", ".github/ISSUE_TEMPLATE/**"]
   workflow_dispatch:
 
 concurrency:

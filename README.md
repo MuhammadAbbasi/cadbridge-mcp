@@ -1,5 +1,9 @@
 # AutoCAD & CAD&PILLAR MCP: CadBridge
 
+[![Latest release](https://img.shields.io/github/v/release/MuhammadAbbasi/cadbridge-mcp?label=CadBridge)](https://github.com/MuhammadAbbasi/cadbridge-mcp/releases/latest)
+[![CadBridge checks](https://github.com/MuhammadAbbasi/cadbridge-mcp/actions/workflows/cadbridge.yml/badge.svg)](https://github.com/MuhammadAbbasi/cadbridge-mcp/actions/workflows/cadbridge.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 **AI agents edit the drawing open in AutoCAD or CAD&PILLAR, live, as DWG.** There is no DXF conversion, no copy of
 the file, and no COM.
 
@@ -8,7 +12,7 @@ the file, and no COM.
 Paste this into Claude Code, Codex, Gemini CLI, Cursor, Antigravity or any agent that can run commands on your PC:
 
 ```text
-Install CadBridge for me. Download https://github.com/MuhammadAbbasi/AutoCad-CadPiller-MCP (git clone, or the ZIP of the main branch) into a folder of your choice, then read cadbridge/AGENTS.md and follow it.
+Install CadBridge for me: download https://github.com/MuhammadAbbasi/cadbridge-mcp/releases/latest/download/cadbridge.zip, unzip it into a folder of your choice, then read cadbridge/AGENTS.md in it and follow it.
 ```
 
 The agent finds your CAD and your AI apps, installs everything for this Windows user (no admin rights), and asks you
@@ -27,7 +31,9 @@ it as an image and save it.
 
 ## Install by hand
 
-1. [Download the ZIP](https://github.com/MuhammadAbbasi/AutoCad-CadPiller-MCP/archive/refs/heads/main.zip) (or clone the repository) and unzip it on the PC. Only the [`cadbridge/`](cadbridge) folder is needed.
+1. Download **[cadbridge.zip](https://github.com/MuhammadAbbasi/cadbridge-mcp/releases/latest/download/cadbridge.zip)**
+   (about 100 KB: installer, prebuilt plugin, MCP server) from the
+   [latest release](https://github.com/MuhammadAbbasi/cadbridge-mcp/releases/latest) and unzip it on the PC.
 2. If this Windows user has never started the CAD, start it once and close it.
 3. Double-click **[`cadbridge/Install.cmd`](cadbridge/Install.cmd)**. It works in five steps:
 
@@ -143,6 +149,10 @@ Both run through the MCP layer (`fastmcp.Client` calling `cad_ops`).
 | `Several CADs are running` | `cad_use("acad")` or `cad_use("cadp")` |
 | the AI app shows no tools | restart the app: apps read their MCP config only at start |
 | hatch looks solid | pass `scale`: patterns are defined in mm or inches, and drawings in mm need large scales |
+
+Something else? [Open an issue](https://github.com/MuhammadAbbasi/cadbridge-mcp/issues/new?template=cadbridge-problem.md)
+with the CAD and its version, the AI app, what you asked, and the end of `%APPDATA%\CadBridge\cadbridge.log` and
+`%LOCALAPPDATA%\CadBridge\server.log`.
 
 ## Development
 

@@ -4,6 +4,7 @@ It talks to the CadBridge plugin (src/CadBridge.cs, autoloaded inside each CAD) 
 pipe \\\\.\\pipe\\cadbridge-<exe>-<pid>; no COM, which some OEMs (CAD&PILLAR) disable.
 Coordinates are drawing units (WCS), angles in degrees CCW.
 """
+
 import atexit
 import json
 import os
@@ -41,7 +42,13 @@ __version__ = _read_file("VERSION", "unknown")
 # <LOG_DIR>\<user>\<user>_<YYYY-MM>.jsonl - one folder and one file per user (the PC is in every line).
 # Logging never fails a tool. Arguments are summarised (op names, file extensions), never copied.
 
-_SESSION = {"id": uuid.uuid4().hex[:8], "client": None, "started": time.time(), "calls": 0, "errors": 0}
+_SESSION = {
+    "id": uuid.uuid4().hex[:8],
+    "client": None,
+    "started": time.time(),
+    "calls": 0,
+    "errors": 0,
+}
 _LOCAL_LOG = Path(os.environ.get("LOCALAPPDATA", str(_HERE))) / "CadBridge" / "server.log"
 _shared_down = False
 
@@ -56,13 +63,22 @@ def _shared_log() -> Path | None:
 
 def log_event(event: str, **fields) -> None:
     global _shared_down
-    rec = {"t": datetime.now().isoformat(timespec="seconds"), "event": event, "user": os.environ.get("USERNAME"),
-           "pc": os.environ.get("COMPUTERNAME"), "session": _SESSION["id"], "version": __version__,
-           "client": _SESSION["client"], **fields}
+    rec = {
+        "t": datetime.now().isoformat(timespec="seconds"),
+        "event": event,
+        "user": os.environ.get("USERNAME"),
+        "pc": os.environ.get("COMPUTERNAME"),
+        "session": _SESSION["id"],
+        "version": __version__,
+        "client": _SESSION["client"],
+        **fields,
+    }
     line = json.dumps(rec, ensure_ascii=False, default=str) + "\n"
     try:
         _LOCAL_LOG.parent.mkdir(parents=True, exist_ok=True)
-        if _LOCAL_LOG.exists() and _LOCAL_LOG.stat().st_size > 5_000_000:  # ponytail: one rollover, no rotation scheme
+        if (
+            _LOCAL_LOG.exists() and _LOCAL_LOG.stat().st_size > 5_000_000
+        ):  # ponytail: one rollover, no rotation scheme
             _LOCAL_LOG.replace(_LOCAL_LOG.with_suffix(".old.log"))
         with _LOCAL_LOG.open("a", encoding="utf-8") as f:
             f.write(line)
@@ -79,7 +95,9 @@ def log_event(event: str, **fields) -> None:
         except OSError as e:
             if not _shared_down:
                 _shared_down = True
-                log_event("shared_log_unreachable", path=str(shared.parent.parent), error=str(e)[:200])
+                log_event(
+                    "shared_log_unreachable", path=str(shared.parent.parent), error=str(e)[:200]
+                )
 
 
 # ---------------- errors, by kind (the kind is what the log counts) ----------------
@@ -114,20 +132,31 @@ class Interrupted(CadBridgeError):
 def _cad_processes() -> list[str]:
     """Names of running AutoCAD / CAD&PILLAR processes (to tell 'CAD closed' from 'plugin not loaded')."""
     try:
-        out = subprocess.run(["tasklist", "/FO", "CSV", "/NH"], capture_output=True, text=True, timeout=10,
-                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+        out = subprocess.run(
+            ["tasklist", "/FO", "CSV", "/NH"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        ).stdout
     except (OSError, subprocess.SubprocessError):
         return []
-    return sorted({row.split('","')[0].strip('"').lower() for row in out.splitlines()} & set(CAD_EXES))
+    return sorted(
+        {row.split('","')[0].strip('"').lower() for row in out.splitlines()} & set(CAD_EXES)
+    )
 
 
 def _recent_crash(exe: str) -> str | None:
     """Exception code of an 'Application Error' event for `exe` in the last 10 minutes, else None."""
     q = "*[System[Provider[@Name='Application Error'] and TimeCreated[timediff(@SystemTime) <= 600000]]]"
     try:
-        out = subprocess.run(["wevtutil", "qe", "Application", f"/q:{q}", "/f:text", "/rd:true", "/c:5"],
-                             capture_output=True, text=True, timeout=10,
-                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+        out = subprocess.run(
+            ["wevtutil", "qe", "Application", f"/q:{q}", "/f:text", "/rd:true", "/c:5"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        ).stdout
     except (OSError, subprocess.SubprocessError):
         return None
     for event in out.split("Event["):
@@ -138,12 +167,18 @@ def _recent_crash(exe: str) -> str | None:
 
 
 # ---------------- pipe ----------------
-_seen: dict[str, dict] = {}  # pipe -> {"since": time, "cad": ping result}; for connected / cad_gone events
+_seen: dict[
+    str, dict
+] = {}  # pipe -> {"since": time, "cad": ping result}; for connected / cad_gone events
 
 
 def pipes() -> list[str]:
     """Running CadBridge instances: pipe names like cadbridge-acad-1234 / cadbridge-cadp-5678."""
-    return sorted(p for p in os.listdir("\\\\.\\pipe\\") if re.fullmatch(r"cadbridge-[a-z0-9_.]+-\d+", p, re.I))
+    return sorted(
+        p
+        for p in os.listdir("\\\\.\\pipe\\")
+        if re.fullmatch(r"cadbridge-[a-z0-9_.]+-\d+", p, re.I)
+    )
 
 
 def _note_gone(found: list[str]) -> None:
@@ -151,8 +186,13 @@ def _note_gone(found: list[str]) -> None:
         info = _seen.pop(name)
         exe = name.split("-")[1] + ".exe"
         crash = _recent_crash(exe)
-        log_event("cad_gone", pipe=name, connected_s=round(time.time() - info["since"]),
-                  crashed=bool(crash), exception=crash)
+        log_event(
+            "cad_gone",
+            pipe=name,
+            connected_s=round(time.time() - info["since"]),
+            crashed=bool(crash),
+            exception=crash,
+        )
 
 
 def pipe_path() -> str:
@@ -160,14 +200,20 @@ def pipe_path() -> str:
     _note_gone(found)
     if _target:
         if _target not in found:
-            raise CadGone(f"{_target} is no longer running; running: {found or 'none'} (use cad_use)")
+            raise CadGone(
+                f"{_target} is no longer running; running: {found or 'none'} (use cad_use)"
+            )
         return "\\\\.\\pipe\\" + _target
     if not found:
         running = _cad_processes()
         if running:
-            raise PluginNotLoaded(f"{', '.join(running)} is running but CadBridge is not loaded in it: run Install.cmd "
-                                  "again (with the CAD closed), then restart the CAD")
-        raise CadNotRunning("No CAD with CadBridge is running: start AutoCAD or CAD&PILLAR (the plugin loads at startup)")
+            raise PluginNotLoaded(
+                f"{', '.join(running)} is running but CadBridge is not loaded in it: run Install.cmd "
+                "again (with the CAD closed), then restart the CAD"
+            )
+        raise CadNotRunning(
+            "No CAD with CadBridge is running: start AutoCAD or CAD&PILLAR (the plugin loads at startup)"
+        )
     if len(found) > 1:
         raise SeveralCads(f"Several CADs are running: {found}. Pick one with cad_use.")
     return "\\\\.\\pipe\\" + found[0]
@@ -188,13 +234,17 @@ def _exchange(path: str, req: dict, retries: int = 20):
                         empty += 1
                         time.sleep(0.01)
             break
-        except OSError:  # pipe busy, or briefly absent while the server re-creates it
+        except OSError as e:  # pipe busy, or briefly absent while the server re-creates it
             if i == retries - 1:
-                raise PipeUnreachable(f"CadBridge pipe {path} not reachable: is the CAD still running?")
+                raise PipeUnreachable(
+                    f"CadBridge pipe {path} not reachable: is the CAD still running?"
+                ) from e
             time.sleep(0.1)
     if not line.endswith(b"\n"):  # not retried: the request may already have been applied
-        raise Interrupted("CadBridge closed the connection without a reply (the CAD closed or crashed?); check the "
-                          "drawing and %APPDATA%\\CadBridge\\cadbridge.log")
+        raise Interrupted(
+            "CadBridge closed the connection without a reply (the CAD closed or crashed?); check the "
+            "drawing and %APPDATA%\\CadBridge\\cadbridge.log"
+        )
     resp = json.loads(line)
     if not resp["ok"]:
         raise CadBridgeError(resp["error"])
@@ -207,8 +257,14 @@ def call(req: dict):
     if name not in _seen:  # first contact with this CAD: record who it is
         cad = _exchange(path, {"op": "ping"})
         _seen[name] = {"since": time.time(), "cad": cad}
-        log_event("connected", pipe=name, cad=cad.get("product"), acadver=cad.get("acadver"),
-                  plugin=cad.get("version"), match=cad.get("version") == __version__)
+        log_event(
+            "connected",
+            pipe=name,
+            cad=cad.get("product"),
+            acadver=cad.get("acadver"),
+            plugin=cad.get("version"),
+            match=cad.get("version") == __version__,
+        )
         if req.get("op") == "ping":
             return cad
     return _exchange(path, req)
@@ -225,7 +281,10 @@ def _summary(tool: str, args: dict) -> dict:
             counts[k] = counts.get(k, 0) + 1
         return {"ops": counts}
     if tool in ("cad_command", "cad_lisp"):  # the command verb, or the first LISP function called
-        m = re.search(r"[(]\s*(?:progn\s*[(]\s*)?([^\s()]+)|(\S+)", str(args.get("text") or args.get("expr") or ""))
+        m = re.search(
+            r"[(]\s*(?:progn\s*[(]\s*)?([^\s()]+)|(\S+)",
+            str(args.get("text") or args.get("expr") or ""),
+        )
         return {"command": ((m.group(1) or m.group(2)) if m else "?")[:40]}
     if tool in ("cad_open", "cad_save", "cad_new"):
         p = args.get("path") or args.get("template") or ""
@@ -235,7 +294,9 @@ def _summary(tool: str, args: dict) -> dict:
 
 class _UsageLog(Middleware):
     async def on_call_tool(self, context, call_next):
-        if _SESSION["client"] is None:  # the AI app's name: known only once a request arrives (no handshake hook)
+        if (
+            _SESSION["client"] is None
+        ):  # the AI app's name: known only once a request arrives (no handshake hook)
             try:
                 info = context.fastmcp_context.session.client_params.client_info
                 _SESSION["client"] = f"{info.name} {info.version or ''}".strip()
@@ -250,33 +311,56 @@ class _UsageLog(Middleware):
         except Exception as e:  # noqa: BLE001 - logged, then re-raised unchanged
             _SESSION["errors"] += 1
             cause = e.__cause__ or e
-            log_event("tool", tool=tool, ok=False, ms=round((time.perf_counter() - t0) * 1000),
-                      kind=getattr(cause, "kind", type(cause).__name__), error=str(cause)[:300],
-                      **_summary(tool, context.message.arguments or {}))
+            log_event(
+                "tool",
+                tool=tool,
+                ok=False,
+                ms=round((time.perf_counter() - t0) * 1000),
+                kind=getattr(cause, "kind", type(cause).__name__),
+                error=str(cause)[:300],
+                **_summary(tool, context.message.arguments or {}),
+            )
             raise
-        log_event("tool", tool=tool, ok=True, ms=round((time.perf_counter() - t0) * 1000),
-                  **_summary(tool, context.message.arguments or {}))
+        log_event(
+            "tool",
+            tool=tool,
+            ok=True,
+            ms=round((time.perf_counter() - t0) * 1000),
+            **_summary(tool, context.message.arguments or {}),
+        )
         return result
 
 
 mcp = FastMCP("cadbridge", version=__version__)
 mcp.add_middleware(_UsageLog())
 log_event("server_start", python=sys.version.split()[0], shared_log=str(_shared_log() or ""))
-atexit.register(lambda: log_event("server_stop", calls=_SESSION["calls"], errors=_SESSION["errors"],
-                                  minutes=round((time.time() - _SESSION["started"]) / 60, 1)))
+atexit.register(
+    lambda: log_event(
+        "server_stop",
+        calls=_SESSION["calls"],
+        errors=_SESSION["errors"],
+        minutes=round((time.time() - _SESSION["started"]) / 60, 1),
+    )
+)
 
 
 @mcp.tool
 def cad_status() -> dict:
     """Running CADs (AutoCAD / CAD&PILLAR) with CadBridge, which one is targeted, and its open drawings."""
     running = pipes()
-    out = {"version": __version__, "running": running, "target": _target or (running[0] if len(running) == 1 else None)}
+    out = {
+        "version": __version__,
+        "running": running,
+        "target": _target or (running[0] if len(running) == 1 else None),
+    }
     if out["target"]:
         out["cad"] = call({"op": "ping"})
         plugin = out["cad"].get("version")
         if plugin != __version__:
-            out["warning"] = (f"plugin {plugin or '< 1.0.0'} != server {__version__}: run Install.cmd again, "
-                              "then restart the CAD")
+            out["warning"] = (
+                f"plugin {plugin or '< 1.0.0'} != server {__version__}: run Install.cmd again, "
+                "then restart the CAD"
+            )
         out["docs"] = call({"op": "docs"})
     return out
 
@@ -347,13 +431,20 @@ def cad_ops(ops: list[dict]) -> list:
 
 def _job(req: dict) -> dict:
     res = call(req)
-    if res.get("status") not in ("done", "idle"):  # timeouts, cancels, busy: worth seeing in the usage log
-        log_event("command_end", status=res.get("status"), command=res.get("command"), ms=res.get("ms"))
+    if res.get("status") not in (
+        "done",
+        "idle",
+    ):  # timeouts, cancels, busy: worth seeing in the usage log
+        log_event(
+            "command_end", status=res.get("status"), command=res.get("command"), ms=res.get("ms")
+        )
     return res
 
 
 @mcp.tool
-def cad_command(text: str, timeout_s: float = 30, on_timeout: str = "cancel", wait: bool = True) -> dict | str:
+def cad_command(
+    text: str, timeout_s: float = 30, on_timeout: str = "cancel", wait: bool = True
+) -> dict | str:
     """Run a command line string in the active drawing (any AutoCAD / CAD&PILLAR command, e.g. "_.ZOOM _E") and
     WAIT until the CAD is idle again. Returns {status: done|timeout|cancelled|busy, ms, command, prompt,
     created: {count, handles}}. A command still waiting for input at timeout_s is cancelled (on_timeout="cancel")
@@ -361,7 +452,14 @@ def cad_command(text: str, timeout_s: float = 30, on_timeout: str = "cancel", wa
     Prefer cad_ops (exact, WCS, one undo step) and cad_lisp (returns values); wait=False only queues it."""
     if not wait:
         return call({"op": "command", "text": text, "async": True})
-    return _job({"op": "command", "text": text, "timeout_ms": int(timeout_s * 1000), "on_timeout": on_timeout})
+    return _job(
+        {
+            "op": "command",
+            "text": text,
+            "timeout_ms": int(timeout_s * 1000),
+            "on_timeout": on_timeout,
+        }
+    )
 
 
 @mcp.tool
@@ -412,16 +510,20 @@ def screenshot_png(path: str | None = None, max_px: int = 1600) -> bytes:
     found = []  # (area, hwnd) of the process's visible titled top-level windows; the main frame is the largest
 
     def visit(h, _):
-        if win32gui.IsWindowVisible(h) and win32gui.GetWindowText(h) and win32process.GetWindowThreadProcessId(h)[1] == pid:
-            l, t, r, b = win32gui.GetWindowRect(h)
-            found.append(((r - l) * (b - t), h))
+        if (
+            win32gui.IsWindowVisible(h)
+            and win32gui.GetWindowText(h)
+            and win32process.GetWindowThreadProcessId(h)[1] == pid
+        ):
+            x0, y0, x1, y1 = win32gui.GetWindowRect(h)
+            found.append(((x1 - x0) * (y1 - y0), h))
 
     win32gui.EnumWindows(visit, None)
     if not found:
         raise RuntimeError(f"no window found for CAD process {pid}")
     hwnd = max(found)[1]
-    l, t, r, b = win32gui.GetWindowRect(hwnd)
-    w, h = r - l, b - t
+    x0, y0, x1, y1 = win32gui.GetWindowRect(hwnd)
+    w, h = x1 - x0, y1 - y0
     hdc = win32gui.GetWindowDC(hwnd)
     src = win32ui.CreateDCFromHandle(hdc)
     mem = src.CreateCompatibleDC()
@@ -431,7 +533,9 @@ def screenshot_png(path: str | None = None, max_px: int = 1600) -> bytes:
     try:
         ctypes.windll.user32.PrintWindow(hwnd, mem.GetSafeHdc(), 2)  # PW_RENDERFULLCONTENT
         info = bmp.GetInfo()
-        img = PILImage.frombuffer("RGB", (info["bmWidth"], info["bmHeight"]), bmp.GetBitmapBits(True), "raw", "BGRX", 0, 1)
+        img = PILImage.frombuffer(
+            "RGB", (info["bmWidth"], info["bmHeight"]), bmp.GetBitmapBits(True), "raw", "BGRX", 0, 1
+        )
     finally:
         win32gui.DeleteObject(bmp.GetHandle())
         mem.DeleteDC()
