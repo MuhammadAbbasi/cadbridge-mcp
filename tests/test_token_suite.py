@@ -189,7 +189,7 @@ def test_the_idle_lane_covers_the_advertised_surfaces_and_the_instructions(repor
     packs = server.PACK_TOOL_NAMES
     assert variants["packs_core"]["advertised_tools"] == (
         variants["default"]["advertised_tools"]
-        - sum(len(packs[name]) for name in ("pid", "settings", "mech", "arch", "plant"))
+        - sum(len(packs[name]) for name in ("pid", "settings", "mech", "arch", "plant", "solar"))
     )
     assert variants["instructions"]["kind"] == "instructions"
     # measured on the full-catalog surface (the longest text the builder writes)
@@ -202,6 +202,7 @@ def test_the_idle_lane_covers_the_advertised_surfaces_and_the_instructions(repor
         - len(packs["settings"])
         - len(packs["arch"])
         - len(packs["plant"])
+        - len(packs["solar"])
     )
     assert variants["packs_core_arch"]["advertised_tools"] == (
         variants["default"]["advertised_tools"]
@@ -209,6 +210,7 @@ def test_the_idle_lane_covers_the_advertised_surfaces_and_the_instructions(repor
         - len(packs["settings"])
         - len(packs["mech"])
         - len(packs["plant"])
+        - len(packs["solar"])
     )
     for narrowed in ("packs_core_mech", "packs_core_arch"):
         assert (

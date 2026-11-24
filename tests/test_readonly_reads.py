@@ -48,6 +48,8 @@ NO_DOCUMENT_READ = {
     "analysis_measure_distance": "arithmetic on the two points it is given",
     "analysis_measure_area": "arithmetic on the polygon it is given",
     "selection_get": "returns the backend's remembered selection",
+    "solar_string_sizing": "PV string arithmetic on the module and inverter data it is given",
+    "solar_cable_sizing": "voltage-drop arithmetic on the cable runs it is given",
 }
 
 #: Read tools that reach ``_async`` WITHOUT ``readonly=True`` on purpose.

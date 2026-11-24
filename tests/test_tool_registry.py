@@ -512,7 +512,7 @@ async def test_tool_groups_is_byte_identical_to_the_source_declared_grouping():
 
 
 async def test_tool_group_sizes_are_unchanged():
-    """Frozen snapshot of the surface (251 tools, 28 groups).
+    """Frozen snapshot of the surface (261 tools, 29 groups).
 
     Taken before @cad_tool landed at 131 tools; `batch` moved 2 -> 3 when
     v1.5.0's `cad_batch` joined `entity_batch_create`/`entity_batch_modify`, and
@@ -635,6 +635,10 @@ async def test_tool_group_sizes_are_unchanged():
     joined SECTION 10, tagged `transaction` beside the rollback tools, and 6 -> 7
     when `drawing_history` (1.8-10, the journal read as a value history) joined
     them, tagged `transaction` too: 257 tools.
+
+    `solar` appeared with the solar engineering pack (4: `solar_string_sizing`,
+    `solar_cable_sizing`, `solar_sld_draw`, `solar_terrain_check`), exactly
+    `PACK_TOOL_NAMES["solar"]`: 261 tools.
     """
     sizes = {label: len(names) for label, names in (await server._tool_groups()).items()}
     assert sizes == {
@@ -658,6 +662,7 @@ async def test_tool_group_sizes_are_unchanged():
         "plant": 2,
         "premium": 12,
         "sheet": 11,
+        "solar": 4,
         "solids": 5,
         "styles": 10,
         "system": 7,
@@ -667,4 +672,4 @@ async def test_tool_group_sizes_are_unchanged():
         "validation": 1,
         "view": 4,
     }
-    assert sum(sizes.values()) == 257
+    assert sum(sizes.values()) == 261

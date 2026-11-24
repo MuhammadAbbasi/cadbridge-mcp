@@ -179,8 +179,9 @@ async def test_a_polylines_vertices_are_in_the_dump(backend):
 
     dump = (await backend.analysis_list_properties(poly.handle))["dxf_attributes"]
 
-    assert [_numbers(pt) for pt in dump["points"]] == pytest.approx(
-        [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0)]
+    # flat: pytest >= 9.2 refuses nested sequences in approx()
+    assert [c for pt in dump["points"] for c in _numbers(pt)] == pytest.approx(
+        [0.0, 0.0, 10.0, 0.0, 10.0, 10.0]
     )
 
 

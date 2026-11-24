@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import tomllib
 from pathlib import Path
 
 import ezdxf
@@ -117,7 +118,11 @@ def test_the_published_reference_report_covers_the_whole_current_matrix():
     manifest = report["manifest"]
     assert manifest["evaluator_version"] == EVALUATOR_VERSION
     assert [row["path"] for row in manifest["fixtures"]] == list(FIXTURE_SOURCES)
-    assert manifest["dependencies"]["ezdxf"] == ezdxf.__version__
+    # The reference run used the locked ezdxf; the floating-deps job installs
+    # the newest one, so compare with uv.lock rather than the installed version.
+    lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
+    locked_ezdxf = next(pkg["version"] for pkg in lock["package"] if pkg["name"] == "ezdxf")
+    assert manifest["dependencies"]["ezdxf"] == locked_ezdxf
 
 
 def test_the_rival_lanes_of_v8_are_recorded_without_a_zero():
