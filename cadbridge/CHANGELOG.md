@@ -3,6 +3,14 @@
 Versions follow `MAJOR.MINOR.PATCH`: MAJOR when an existing tool or op changes in a way that breaks callers,
 MINOR for new tools, ops or supported CADs, PATCH for fixes. The number lives only in `VERSION`.
 
+## 1.3.4 - 2026-11-24
+
+- Usage log: lines written while the shared log folder (`-LogDir`) is unreachable (network down, VPN off, laptop out
+  of the office) wait in `%LOCALAPPDATA%\CadBridge\shared_pending.jsonl` and reach the shared folder, in order, at
+  the next successful write, also in a later session. The shared log no longer has gaps. The local `server.log`
+  still holds everything. The backlog stops growing at 5 MB.
+- `src/check_usage_log.py`: offline check of that path, run by the CadBridge CI.
+
 ## 1.3.3 - 2026-11-23
 
 First public release from `MuhammadAbbasi/cadbridge-mcp`.

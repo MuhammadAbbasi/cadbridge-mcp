@@ -39,7 +39,8 @@ __version__ = _read_file("VERSION", "unknown")
 # ---------------- usage log ----------------
 # One JSON line per event, always in %LOCALAPPDATA%\CadBridge\server.log and, when a shared folder is configured
 # (CADBRIDGE_LOG_DIR, or the LOG_DIR file the installer writes beside this script), also in
-# <LOG_DIR>\<user>\<user>_<YYYY-MM>.jsonl - one folder and one file per user (the PC is in every line).
+# <LOG_DIR>\<user>\<user>_<YYYY-MM>.jsonl - one folder and one file per user (the PC is in every line). While the
+# shared folder is unreachable its lines wait in shared_pending.jsonl and are sent at the next successful write.
 # Logging never fails a tool. Arguments are summarised (op names, file extensions), never copied.
 
 _SESSION = {
@@ -50,6 +51,8 @@ _SESSION = {
     "errors": 0,
 }
 _LOCAL_LOG = Path(os.environ.get("LOCALAPPDATA", str(_HERE))) / "CadBridge" / "server.log"
+# lines the shared folder missed, sent when it is back
+_PENDING = _LOCAL_LOG.parent / "shared_pending.jsonl"
 _shared_down = False
 
 
@@ -88,11 +91,21 @@ def log_event(event: str, **fields) -> None:
     if shared:
         try:
             shared.parent.mkdir(parents=True, exist_ok=True)
+            # the lines of an outage (this session's or an earlier one's) go first, then the backlog is cleared
+            backlog = _PENDING.read_text(encoding="utf-8") if _PENDING.exists() else ""
             with shared.open("a", encoding="utf-8") as f:
-                f.write(line)
-            if _shared_down:  # back after an outage
-                _shared_down = False
+                f.write(backlog + line)
+            if backlog:
+                _PENDING.unlink(missing_ok=True)
+            _shared_down = False
         except OSError as e:
+            try:
+                # ponytail: capped at 5 MB, later lines stay only in the local log
+                if not _PENDING.exists() or _PENDING.stat().st_size < 5_000_000:
+                    with _PENDING.open("a", encoding="utf-8") as f:
+                        f.write(line)
+            except OSError:
+                pass
             if not _shared_down:
                 _shared_down = True
                 log_event(
