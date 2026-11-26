@@ -9,10 +9,41 @@ the file, and no COM.
 
 ## Quick install: let your AI agent do it
 
-Paste this into Claude Code, Codex, Gemini CLI, Cursor, Antigravity or any agent that can run commands on your PC:
+Paste this complete prompt into Claude Code, Codex, Gemini CLI, Cursor, Antigravity, Copilot, or any AI agent that can run commands on your Windows PC:
 
 ```text
-Install CadBridge for me: download https://github.com/MuhammadAbbasi/cadbridge-mcp/releases/latest/download/cadbridge.zip, unzip it into a folder of your choice, then read cadbridge/AGENTS.md in it and follow it.
+Install the CadBridge MCP server on this Windows PC (per-user, no admin rights needed) by following these steps carefully:
+
+1. Get the files:
+   - If you are not already inside a clone of this repo containing the `cadbridge\` folder, download and extract the latest release into a temporary folder (e.g. `$env:TEMP\cadbridge-install`):
+     powershell -NoProfile -Command "Invoke-WebRequest 'https://github.com/MuhammadAbbasi/cadbridge-mcp/releases/latest/download/cadbridge.zip' -OutFile \"$env:TEMP\cadbridge.zip\"; Expand-Archive \"$env:TEMP\cadbridge.zip\" -DestinationPath \"$env:TEMP\cadbridge-install\" -Force"
+   - Locate the `cadbridge\` folder and verify it contains: `installer.ps1`, `VERSION`, `bin\net8\CadBridge.dll`, `bin\net48\CadBridge.dll`, and `src\cadbridge_mcp.py`. Also read `cadbridge\AGENTS.md` if you need troubleshooting details.
+
+2. Follow these strict rules:
+   - NEVER close, kill, or restart AutoCAD, CAD&PILLAR, or any of my AI apps yourself (do not run Stop-Process or taskkill).
+   - Do NOT edit AI app MCP config files by hand; `installer.ps1` updates them safely with backups.
+   - Do NOT modify CAD security settings (`TRUSTEDPATHS` or `SECURELOAD`).
+
+3. Check that CAD is closed:
+   - Run `tasklist /FI "IMAGENAME eq acad.exe"` and `tasklist /FI "IMAGENAME eq cadp.exe"`.
+   - If either is running, stop and ask me to save my work and close the CAD, then continue after I confirm it is closed.
+
+4. Run the non-interactive installer from inside the `cadbridge\` folder:
+   - Run:
+     powershell -NoProfile -ExecutionPolicy Bypass -File .\installer.ps1 -Cads all -Clients found -Yes
+   - (If I asked for specific AI apps only, use `-Clients <comma-list>` from: `claude-code`, `claude-desktop`, `codex`, `cursor`, `windsurf`, `vscode`, `antigravity`, `gemini-cli`. If `Install.cmd` in this folder passes `-LogDir`, pass the same `-LogDir`.)
+   - Note: the first run downloads `uv`, Python 3.12, `fastmcp`, `pywin32`, and `pillow` (requires internet, takes ~1-3 minutes).
+
+5. Verify the output:
+   - Success ends with `Step 5/5  Done`.
+   - If it exits with code 1, read the last lines:
+     - `Close the CAD first` -> ask me to close the CAD and re-run step 4.
+     - `Start these once, close them, then run the installer again` -> ask me to open that CAD once and close it, then re-run step 4.
+     - `! <file> is not plain JSON` -> show me the JSON snippet printed by the installer so I can add it manually.
+     - Any other error -> report the exact message and stop.
+
+6. Tell me when finished:
+   - Remind me to: (1) start AutoCAD or CAD&PILLAR and open a drawing, (2) restart the configured AI app(s) (including this session/terminal) so they load the new MCP config, and (3) test in a new chat with: "use cad_status, then list the layers of the open drawing" (verifying `cad_status` returns `connected` and `version` matches `VERSION`).
 ```
 
 The agent finds your CAD and your AI apps, installs everything for this Windows user (no admin rights), and asks you
